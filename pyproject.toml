@@ -1,0 +1,82 @@
+[project]
+name = "mpy-connection"
+description = "Micropython connection package."
+authors = [{name = "Andrew Ridyard", email = "andrew.pretense394@passmail.net"}]
+maintainers = [{name = "Andrew Ridyard", email = "andrew.pretense394@passmail.net"}]
+version = "0.1.0"
+license = {file = "LICENSE"}
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.10"
+classifiers=[
+    # 3 - Alpha | 4 - Beta | 5 - Production/Stable
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPL-3.0-or-later)",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    # Python versions
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: MicroPython",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Embedded Systems",
+]
+keywords = ["rpi", "micropython"]
+dependencies = [
+    "micropython-stdlib-stubs",
+    "micropython-rp2-rpi_pico_w-stubs",
+]
+
+[dependency-groups]
+dev = [
+    "bump-my-version>=1.1.2",
+    "ruff>=0.11.5",
+]
+
+[project.urls]
+Repository = "https://gitlab.com/-/ide/project/micropython-iot-projects/libraries/mpy-connection"
+Issues = "https://gitlab.com/micropython-iot-projects/libraries/mpy-connection/-/issues"
+
+
+[tool.ruff]
+exclude = ["lib", "env"]
+indent-width = 4
+line-length = 80
+
+[tool.ruff.format]
+indent-style = "space"
+line-ending = "auto"
+quote-style = "double"
+
+[tool.ruff.lint]
+select = [
+    "D1",  # pydocstyle
+    "E",   # pycodestyle
+    "ERA", # commented out code
+    "W",   # pycodestyle
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+
+[tool.uv.sources]
+
+[tool.bumpversion]
+current_version = "0.0.1"
+commit = true
+commit_args = "--no-verify"
+tag = true
+tag_name = "v{new_version}"
+tag_message = "chore: tag version update {current_version} -> {new_version}."
+allow_dirty = false
+message = "chore: version update {current_version} -> {new_version}."
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'

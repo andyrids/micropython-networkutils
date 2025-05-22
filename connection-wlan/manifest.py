@@ -1,3 +1,4 @@
+# pyright: reportUndefinedVariable=false
 # `metadata(description=None, version=None, license=None, author=None)`
 # define metadata for this manifest file. This is useful for `micropython-lib` packages.
 metadata(description="", version="0.0.1")

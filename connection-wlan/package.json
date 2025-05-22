@@ -1,6 +1,6 @@
 {
     "urls": [
-        ["wlan.py", "connection/wlan.py"]
+        ["connection/wlan.py", "connection/wlan.py"]
     ],
     "deps": [
         ["gitlab:micropython-iot-projects/libraries/mpy-connection/connection", "latest"]

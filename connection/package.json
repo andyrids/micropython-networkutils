@@ -1,6 +1,6 @@
 {
     "urls": [
-        ["__init__.py", "connection/__init__.py"]
+        ["connection/__init__.py", "connection/__init__.py"]
     ],
     "deps": [
         ["github:josverl/micropython-stubs/mip/typing.mpy", "main"],

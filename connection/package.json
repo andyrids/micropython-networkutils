@@ -1,0 +1,10 @@
+{
+    "urls": [
+        ["__init__.py", "connection/__init__.py"]
+    ],
+    "deps": [
+        ["github:josverl/micropython-stubs/mip/typing.mpy", "main"],
+        ["github:josverl/micropython-stubs/mip/typing_extensions.mpy", "main"]
+    ],
+    "version": "0.0.1"
+}

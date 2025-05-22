@@ -1,6 +1,4 @@
-# sourcery skip: use-contextlib-suppress
-# pyright: reportMissingImports=false
-"""Connection package __init__ file.
+"""Connection package utils module.
 
 Author: Andrew Ridyard.
 
@@ -24,27 +22,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 Functions:
     debug_message: Print debug message if verbose flag is True.
 
-Exceptions:
-    CertificateNotFound: SSL context certificate not found.
-
-    WLANConnectionError: WLAN connection failed.
+    debug_network_status: Print WLAN status message if verbose flag is True.
 """
 
-# optional dependencies
-try:
-    from .utils import debug_message
-    from .wlan import *
-except ImportError:
-    pass
+def debug_message(message: str, verbose: bool) -> None:
+    """Print debug message if verbose flag is True.
 
+    Args:
+        message (str): Message to print.
 
-class CertificateNotFound(Exception):
-    """SSL context certificate not found."""
-    pass
-
-
-class WLANConnectionError(Exception):
-    """WLAN connection failed."""
-    pass
-
-print("__init__")
+        verbose (bool): Message print flag.
+    """
+    # "{:^30}".format("CENTRED STRING")
+    if not verbose:
+        return
+    print("\n".join([i.strip() for i in message.split("\n")]))

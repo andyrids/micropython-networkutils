@@ -1,1 +1,12 @@
-{"python.languageServer": "Pylance","python.analysis.typeCheckingMode": "basic",} 
+{
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none"
+    },
+    "python.analysis.typeshedPaths": [
+        ".venv/lib/python3.13/site-packages",
+        "typings"
+    ],
+    "cSpell.words": [
+        "pimoroni"
+    ],
+}

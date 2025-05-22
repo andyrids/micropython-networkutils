@@ -1,8 +1,8 @@
 [project]
 name = "mpy-connection"
-description = "Micropython connection package."
-authors = [{name = "Andrew Ridyard", email = "andrew.pretense394@passmail.net"}]
-maintainers = [{name = "Andrew Ridyard", email = "andrew.pretense394@passmail.net"}]
+description = "Micropython network interface utility package."
+authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
+maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 version = "0.1.0"
 license = {file = "LICENSE"}
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -23,7 +23,7 @@ classifiers=[
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Embedded Systems",
 ]
-keywords = ["rpi", "micropython"]
+keywords = ["micropython", "package", "microcontroller", "network"]
 dependencies = [
     "micropython-stdlib-stubs",
     "micropython-rp2-rpi_pico_w-stubs",
@@ -32,11 +32,12 @@ dependencies = [
 [dependency-groups]
 dev = [
     "bump-my-version>=1.1.2",
+    "mpremote>=1.25.0",
     "ruff>=0.11.5",
 ]
 
 [project.urls]
-Repository = "https://gitlab.com/-/ide/project/micropython-iot-projects/libraries/mpy-connection"
+Repository = "https://gitlab.com/micropython-iot-projects/libraries/mpy-connection"
 Issues = "https://gitlab.com/micropython-iot-projects/libraries/mpy-connection/-/issues"
 
 
@@ -65,6 +66,7 @@ convention = "google"
 addopts = ["--import-mode=importlib"]
 
 [tool.uv.sources]
+# picoproject = { git = "https://github.com/andyrids/picoproject" }
 
 [tool.bumpversion]
 current_version = "0.0.1"
@@ -76,7 +78,20 @@ tag_message = "chore: tag version update {current_version} -> {new_version}."
 allow_dirty = false
 message = "chore: version update {current_version} -> {new_version}."
 
+# update pyproject.toml version
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
+
+# update package.json version
+[[tool.bumpversion.files]]
+filename = "package.json"
+search = '"version": "{current_version}"'
+replace = '"version": "{new_version}"'
+
+# update package manifest.py version
+[[tool.bumpversion.files]]
+filename = "connection/manifest.py"
+search = 'version="{current_version}"'
+replace = 'version="{new_version}"'

@@ -29,4 +29,5 @@ except ImportError:
 
 class CertificateNotFound(Exception):
     """SSL context certificate not found."""
+
     pass

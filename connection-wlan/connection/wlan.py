@@ -47,8 +47,8 @@ Examples:
         print("STA CONNECTION ESTABLISHED")
     else:
         print("CONNECTION ERROR, WLAN IN AP MODE")
-        
 """
+
 import binascii
 import machine
 import network
@@ -62,16 +62,17 @@ _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
 
 class WLANConnectionError(Exception):
     """Raised on failed WLAN connection."""
+
     pass
 
 
 def access_point_reset(
-        WLAN: network.WLAN, verbose: bool
-    ) -> tuple[network.WLAN, int]:
+    WLAN: network.WLAN, verbose: bool
+) -> tuple[network.WLAN, int]:
     """Reset a WLAN instance and restart in Access Point (AP) mode.
-     
+
     Configures AP SSID & password through credentials stored in `AP_SSID` &
-    `AP_PASSWORD` environment variables or 
+    `AP_PASSWORD` environment variables or
 
     Args:
         verbose (bool): Debug messages flag.
@@ -98,10 +99,11 @@ def access_point_reset(
     activate_interface(WLAN, verbose)
     return WLAN, network.AP_IF
 
+
 def activate_interface(WLAN: network.WLAN, verbose: bool) -> None:
     """Activate WLAN interface and wait 5 seconds for initialisation.
-    
-    NOTE: The active method does not behave as expected on the Pico W 
+
+    NOTE: The active method does not behave as expected on the Pico W
     for STA mode - it will always return False (hence the timeout).
 
     Args:
@@ -115,7 +117,7 @@ def activate_interface(WLAN: network.WLAN, verbose: bool) -> None:
     debug_message("ACTIVATE NETWORK INTERFACE", verbose)
     # activate network interface
     WLAN.active(True)
-    try: # 5 second timeout
+    try:  # 5 second timeout
         await_timeout = iter(range(5))
         while next(await_timeout) >= 0:
             if WLAN.status() == network.STAT_GOT_IP or WLAN.active():
@@ -128,7 +130,7 @@ def activate_interface(WLAN: network.WLAN, verbose: bool) -> None:
 
 def connect_interface(WLAN: network.WLAN, verbose: bool) -> None:
     """Connect a WLAN interface in STA mode.
-    
+
     A connection is attempted using credentials stored in `WLAN_SSID` &
     `WLAN_PASSWORD` environment variables. A `WLANConnectionError` is raised
     if WLAN is in AP mode or the connection attempt times out (15s).
@@ -152,7 +154,7 @@ def connect_interface(WLAN: network.WLAN, verbose: bool) -> None:
             debug_message("ENV $WLAN_SSID NOT SET", verbose)
             raise WLANConnectionError
 
-        networks = {name.decode() for name,*_ in set(WLAN.scan()) if name}
+        networks = {name.decode() for name, *_ in set(WLAN.scan()) if name}
         if WLAN_SSID not in networks:
             debug_message(f"SSID '{WLAN_SSID}' NOT AVAILABLE", verbose)
             debug_message(f"AVAILABLE NETWORKS: {networks}", verbose)
@@ -170,10 +172,10 @@ def connect_interface(WLAN: network.WLAN, verbose: bool) -> None:
         debug_message(f"TypeError: {e}", verbose)
         debug_message(f"WLAN CONNECT ERROR - SSID {WLAN_SSID}", verbose)
         raise WLANConnectionError from e
-    try: # 30 second timeout
+    try:  # 30 second timeout
         debug_message("WAITING FOR WLAN CONNECTION", verbose)
         await_timeout = iter(range(30))
-        while next(await_timeout)>= 0:
+        while next(await_timeout) >= 0:
             debug_message(f"WLAN STATUS: {WLAN.status()}", verbose)
             if (WLAN.status() == network.STAT_GOT_IP) or WLAN.isconnected():
                 break
@@ -195,9 +197,8 @@ def connection_issue(WLAN: network.WLAN, WLAN_MODE: int) -> bool:
         bool: True if WLAN is in AP mode or if WLAN is in STA mode and not
             connected to a WiFi access point, else False.
     """
-    return (
-        (WLAN_MODE == WLAN.IF_AP) or 
-        (WLAN_MODE == WLAN.IF_STA and not WLAN.isconnected())
+    return (WLAN_MODE == WLAN.IF_AP) or (
+        WLAN_MODE == WLAN.IF_STA and not WLAN.isconnected()
     )
 
 
@@ -218,7 +219,7 @@ def deactivate_interface(WLAN: network.WLAN, verbose: bool) -> None:
     debug_message("DEACTIVATE NETWORK INTERFACE", verbose)
     WLAN.active(False)
 
-    try: # 5 second timeout
+    try:  # 5 second timeout
         await_timeout = iter(range(5))
         while next(await_timeout) >= 0:
             if not WLAN.active():
@@ -231,23 +232,19 @@ def deactivate_interface(WLAN: network.WLAN, verbose: bool) -> None:
 
 def debug_message(message: str, verbose: bool) -> None:
     """Print a debug message.
-    
+
     Args:
         message (str): Message to print.
 
         verbose (bool): Message print flag.
     """
-    # "{:^30}".format("CENTRED STRING")
+    # `"{:^30}".format("CENTRED STRING")`
     if not verbose:
         return
     print("\n".join([i.strip() for i in message.split("\n")]))
 
 
-def debug_network_status(
-        WLAN: network.WLAN,
-        mode: int,
-        verbose: bool
-    ) -> None:
+def debug_network_status(WLAN: network.WLAN, mode: int, verbose: bool) -> None:
     """Print WLAN status debug messages.
 
     Args:
@@ -276,7 +273,7 @@ def debug_network_status(
 
 def get_network_interface(verbose: bool = False) -> tuple[network.WLAN, int]:
     """Initialise & activate a `network.WLAN` interface instance.
-    
+
     The interface is initialised in either STA or AP mode depending on
     environment variable values and connection availability.
 
@@ -334,15 +331,15 @@ def get_network_interface(verbose: bool = False) -> tuple[network.WLAN, int]:
     else:
         WLAN_MODE = network.STA_IF
         debug_message("SETTING WLAN MODE TO STA", verbose)
-    
+
     # create WLAN instance
     WLAN = network.WLAN(WLAN_MODE)
-    # config WLAN AP with SSID & KEY values 
-    WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=0xa11140)
+    # config WLAN AP with SSID & KEY values
+    WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=0xA11140)
 
     activate_interface(WLAN, verbose)
 
-    # attempt WLAN interface connection 
+    # attempt WLAN interface connection
     try:
         # successful STA mode connection
         connect_interface(WLAN, verbose)

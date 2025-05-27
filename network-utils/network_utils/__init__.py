@@ -1,8 +1,20 @@
+# sourcery skip: use-contextlib-suppress
 # pyright: reportMissingImports=false
-"""Connection package WLAN interface functions.
+"""A MicroPython `network` module utility functions package.
 
-This module contains a series of functions to manage a WLAN connection in STA
-or AP modes.
+This `network-utils` package contains utility functions that help implement
+concrete network classes within the MicroPython `network` module, such as the
+`network.WLAN` class.
+
+The package has been designed to allow for future extensions:
+
+- `network-utils` (WIP)
+- `network-utils-mqtt` (TODO)
+- `network-utils-microdot` (TODO)
+
+This package uses static typing, which is enabled by the package dependencies.
+On installation, the cross-compiled `typing.mpy` & `typing_extensions.mpy`
+files are downloaded to the device `lib` folder.
 
 Author: Andrew Ridyard.
 
@@ -56,8 +68,19 @@ import os
 
 from time import sleep
 
+# optional `network-utils-*` extension dependencies
+try:
+    from .mqtt import *
+except ImportError:
+    pass
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
+
+
+class CertificateNotFound(Exception):
+    """SSL context certificate not found."""
+
+    pass
 
 
 class WLANConnectionError(Exception):
@@ -133,7 +156,7 @@ def connect_interface(WLAN: network.WLAN, verbose: bool) -> None:
 
     A connection is attempted using credentials stored in `WLAN_SSID` &
     `WLAN_PASSWORD` environment variables. A `WLANConnectionError` is raised
-    if WLAN is in AP mode or the connection attempt times out (15s).
+    if WLAN is in AP mode or the connection attempt times out (30s).
 
     Args:
         WLAN (network.WLAN): Activated WLAN interface.

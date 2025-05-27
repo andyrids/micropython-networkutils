@@ -17,14 +17,14 @@ Installation of `network-utils` will only install files that are part of the `ne
 micropython-network-utils
 ├── network-utils          <-- network-utils package
 │   ├── manifest.py
-│   ├── network_utils      <-- Installation directory on device i.e. `lib/network_utils/__init__.py`
+│   ├── network_utils      <-- device installation dir i.e. `lib/network_utils/__init__.py`
 │   │   └── __init__.py
-│   └── package.json       <-- Used by mip to install network-utils package
-├── network-utils-mqtt        <-- Extension package for network-utils e.g. network-utils-mqtt
+│   └── package.json       <-- package URLs & dependencies 
+├── network-utils-mqtt     <-- Extension package for network-utils
 │   ├── manifest.py
-│   ├── network_utils      <-- Installation directory on device i.e. `lib/network_utils/mqtt.py`
+│   ├── network_utils      <-- device installation dir i.e. i.e. `lib/network_utils/mqtt.py`
 │   │   └── mqtt.py
-│   ├── package.json       <-- Used by mip to install extension and original network-utils packages
+│   ├── package.json       <-- extension package URLs & dependencies (includes network-utils)
 │   └── test_wlan.py
 ```
 

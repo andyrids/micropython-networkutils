@@ -1,6 +1,6 @@
 {
     "urls": [
-        ["connection/__init__.py", "gitlab:micropython-iot-projects/libraries/micropython-network-utils/network-utils/__init__.py"]
+        ["connection/__init__.py", "gitlab:micropython-iot-projects/libraries/micropython-network-utils/network-utils/network_utils/__init__.py"]
     ],
     "deps": [
         ["github:josverl/micropython-stubs/mip/typing.mpy", "main"],

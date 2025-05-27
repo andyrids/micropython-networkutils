@@ -1,5 +1,5 @@
 # pyright: reportUndefinedVariable=false
-"""Connection package manifest file.
+"""network-utils-mqtt package manifest file.
 
 Author: Andrew Ridyard.
 
@@ -14,8 +14,8 @@ metadata(description="", version="0.0.1")
 
 # `require(name, library=None)`
 # require a package by name (and its dependencies) from `micropython-lib`.
-require("connection")
+require("network-utils")
 
 # `package(package_path, files=None, base_path='.', opt=None)`
 # if package not in the same directory as the manifest file, use `base_path`.
-package("connection")
+package("network-utils")

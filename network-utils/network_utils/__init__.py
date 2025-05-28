@@ -62,9 +62,11 @@ Examples:
 """
 
 import binascii
+import sys
 import machine
 import network
 import os
+from typing import Optional
 
 from time import sleep
 
@@ -75,6 +77,7 @@ except ImportError:
     pass
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
+_logger = None
 
 
 class CertificateNotFound(Exception):
@@ -111,7 +114,7 @@ def access_point_reset(
     AP_SSID = os.getenv("AP_SSID")
     AP_PASSWORD = os.getenv("AP_PASSWORD")
     if AP_SSID is None or AP_PASSWORD is None:
-        debug_message("ENV $AP_SSID & $AP_PASSWORD NOT SET", verbose)
+        debug_message("ENV $AP_SSID & $AP_PASSWORD NOT SET")
         AP_SSID = f"DEVICE-{_DEVICE_ID}"
         AP_PASSWORD = _DEVICE_ID
         os.putenv("AP_SSID", AP_SSID)
@@ -229,7 +232,8 @@ def deactivate_interface(WLAN: network.WLAN, verbose: bool) -> None:
     """Deactivate a WLAN interface.
 
     NOTE: The `WLAN.active` method does not behave as expected on the Pico W
-    for STA mode - it will always return False (hence the timeout).
+    for STA mode - it will always return False (hence the timeout). This might
+    be a nuance of the Pico W and should work on other microcontrollers.
 
     Args:
         WLAN (network.WLAN): WLAN instance.
@@ -253,48 +257,9 @@ def deactivate_interface(WLAN: network.WLAN, verbose: bool) -> None:
         debug_message("DEACTIVATE NETWORK TIMEOUT - STA MODE", verbose)
 
 
-def debug_message(message: str, verbose: bool) -> None:
-    """Print a debug message.
-
-    Args:
-        message (str): Message to print.
-
-        verbose (bool): Message print flag.
-    """
-    # `"{:^30}".format("CENTRED STRING")`
-    if not verbose:
-        return
-    print("\n".join([i.strip() for i in message.split("\n")]))
-
-
-def debug_network_status(WLAN: network.WLAN, mode: int, verbose: bool) -> None:
-    """Print WLAN status debug messages.
-
-    Args:
-        WLAN (network.WLAN): WLAN instance.
-
-        mode (str): WLAN instance mode.
-
-        verbose (bool): Debug message print flag.
-    """
-    WLAN_MODE_STR = ("STA", "AP")[mode]
-    status = WLAN.status()
-    active = WLAN.active()
-    connected = WLAN.isconnected()
-
-    message = f"""
-    WLAN INFO
-    ---------
-    MODE: {WLAN_MODE_STR}
-    STATUS: {status}
-    ACTIVE: {active}
-    CONNECTED: {connected}
-    """
-
-    debug_message(message, verbose)
-
-
-def get_network_interface(verbose: bool = False) -> tuple[network.WLAN, int]:
+def get_network_interface(
+        pm: Optional[int] = None, verbose: bool = False
+    ) -> tuple[network.WLAN, int]:
     """Initialise & activate a `network.WLAN` interface instance.
 
     The interface is initialised in either STA or AP mode depending on
@@ -323,8 +288,16 @@ def get_network_interface(verbose: bool = False) -> tuple[network.WLAN, int]:
         network.STAT_IDLE (0)
         network.STAT_CONNECTING (1)
         network.STAT_GOT_IP (3)
+    
+    Power mode enumerations:
+        WLAN.PM_NONE - Disable power management
+        WLAN.PM_PERFORMANCE - Enable power management with a shorter timer
+        WLAN.PM_POWERSAVE - Increased power savings and reduced performance
 
     Args:
+        pm (int, optional): WLAN power management mode; WLAN.PM_NONE,
+            WLAN.PM_PERFORMANCE or WLAN.PM_POWERSAVE. Defaults to None.
+
         verbose (bool): Debug messages flag.
 
     Returns:
@@ -347,9 +320,7 @@ def get_network_interface(verbose: bool = False) -> tuple[network.WLAN, int]:
     # select WLAN instance mode based on credential values
     if WLAN_SSID is None or len(WLAN_SSID) < 1:
         # reset WLAN secrets
-        os.unsetenv("WLAN_SSID")
-        os.unsetenv("WLAN_PASSWORD")
-        debug_message("SETTING WLAN MODE TO AP", verbose)
+        debug_message(f"INVALID SSID ({WLAN_SSID}) SETTING AP MODE", verbose)
         WLAN_MODE = network.AP_IF
     else:
         WLAN_MODE = network.STA_IF
@@ -358,8 +329,10 @@ def get_network_interface(verbose: bool = False) -> tuple[network.WLAN, int]:
     # create WLAN instance
     WLAN = network.WLAN(WLAN_MODE)
     # config WLAN AP with SSID & KEY values
-    WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=0xA11140)
-
+    if pm not in {WLAN.PM_NONE, WLAN.PM_PERFORMANCE, WLAN.PM_POWERSAVE}:
+        pm = None
+    WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=pm)
+    
     activate_interface(WLAN, verbose)
 
     # attempt WLAN interface connection

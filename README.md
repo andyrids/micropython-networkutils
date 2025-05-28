@@ -4,6 +4,22 @@ NOTE: **WIP**
 
 This is a repository for a MicroPython package named `network-utils`, which contains utility functions related to interfaces exposed by the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library and external packages on the [`micropython-lib`](https://github.com/micropython/micropython-lib) repository.
 
+1. Uses environment variables to configure WiFi credentials for both STA and AP modes.
+2. Attempts to connect to a WiFi network in STA mode; if unsuccessful, resets the interface and starts an AP with default or environment-provided credentials.
+3. Provides helper functions for activating/deactivating interfaces, printing debug information, and checking connection status.
+4. Implements timeouts for network operations to handle hardware-specific quirks
+
+```mermaid
+flowchart TD
+    A[Start] --> B{STA credentials set?}
+    B -- No --> C[Set AP mode]
+    B -- Yes --> D[Set STA mode]
+    D --> E{STA connect success?}
+    E -- Yes --> F[Return STA interface]
+    E -- No --> C
+    C --> G[Return AP interface]
+```
+
 * `typing`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing.py)
 * `typing_extensions`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing_extensions.py)
 

@@ -1,5 +1,5 @@
 [project]
-name = "mpy-connection"
+name = "micropython-network-utils"
 description = "Micropython network interface utility package."
 authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
@@ -37,8 +37,8 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://gitlab.com/micropython-iot-projects/libraries/mpy-connection"
-Issues = "https://gitlab.com/micropython-iot-projects/libraries/mpy-connection/-/issues"
+Repository = "https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils"
+Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/issues"
 
 
 [tool.ruff]

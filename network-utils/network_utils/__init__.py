@@ -44,31 +44,28 @@ Functions:
 
 Examples:
     import os
-    from connection import debug_network_status, get_network_interface
+    from network_utils import get_network_interface, _logger
 
-    _VERBOSE = const(True)
 
-    os.putenv("WLAN_SSID", "SSID")
-    os.putenv("WLAN_PASSWORD", "PASSWORD")
+    os.putenv("WLAN_SSID", "your SSID")
+    os.putenv("WLAN_PASSWORD", "your PASSWORD")
 
-    WLAN, WLAN_MODE = get_network_interface(_VERBOSE)
-
-    debug_network_status(WLAN, WLAN_MODE, verbose)
+    WLAN, WLAN_MODE = get_network_interface(debug=True)
 
     if not connection_issue(WLAN, WLAN_MODE):
-        print("STA CONNECTION ESTABLISHED")
+        _logger.debug("STA CONNECTION ESTABLISHED")
     else:
-        print("CONNECTION ERROR, WLAN IN AP MODE")
+        _logger.debug("CONNECTION ERROR, WLAN IN AP MODE")
 """
 
 import binascii
-import sys
+import logging
 import machine
 import network
 import os
-from typing import Optional
-
+import sys
 from time import sleep
+from typing import Optional
 
 # optional `network-utils-*` extension dependencies
 try:
@@ -77,7 +74,11 @@ except ImportError:
     pass
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
-_logger = None
+
+_stream_handler = logging.StreamHandler(stream=sys.stdout)
+_logger = logging.getLogger(__name__)
+_logger.addHandler(_stream_handler)
+_logger.setLevel(logging.ERROR)
 
 
 class CertificateNotFound(Exception):
@@ -92,69 +93,69 @@ class WLANConnectionError(Exception):
     pass
 
 
-def access_point_reset(
-    WLAN: network.WLAN, verbose: bool
-) -> tuple[network.WLAN, int]:
+def access_point_reset(WLAN: network.WLAN) -> tuple[network.WLAN, int]:
     """Reset a WLAN instance and restart in Access Point (AP) mode.
 
     Configures AP SSID & password through credentials stored in `AP_SSID` &
-    `AP_PASSWORD` environment variables or
+    `AP_PASSWORD` environment variables or defaults to `DEVICE-DEVICE_ID`
+    as the SSID and DEVICE_ID as the password. DEVICE_ID represents the value
+    returned by the `machine.unique_id` function.
 
     Args:
-        verbose (bool): Debug messages flag.
+        WLAN (network.WLAN): WLAN interface instance.
 
     Returns:
-        network.WLAN
+        tuple[network.WLAN, int]: A WLAN instance in AP mode and the
+            `network.AP_IF` AP mode enumeration value.
     """
     WLAN.disconnect()
-    deactivate_interface(WLAN, verbose)
+    deactivate_interface(WLAN)
     WLAN.deinit()
 
     WLAN = network.WLAN(network.AP_IF)
     AP_SSID = os.getenv("AP_SSID")
     AP_PASSWORD = os.getenv("AP_PASSWORD")
     if AP_SSID is None or AP_PASSWORD is None:
-        debug_message("ENV $AP_SSID & $AP_PASSWORD NOT SET")
+        _logger.debug("ENV $AP_SSID & $AP_PASSWORD NOT SET")
         AP_SSID = f"DEVICE-{_DEVICE_ID}"
         AP_PASSWORD = _DEVICE_ID
         os.putenv("AP_SSID", AP_SSID)
         os.putenv("AP_PASSWORD", _DEVICE_ID)
-        debug_message("USING DEFAULT AP_SSID & AP_PASSWORD", verbose)
+        _logger.debug("USING DEFAULT AP_SSID & AP_PASSWORD")
 
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)
-    activate_interface(WLAN, verbose)
+    activate_interface(WLAN)
     return WLAN, network.AP_IF
 
 
-def activate_interface(WLAN: network.WLAN, verbose: bool) -> None:
+def activate_interface(WLAN: network.WLAN) -> None:
     """Activate WLAN interface and wait 5 seconds for initialisation.
 
-    NOTE: The active method does not behave as expected on the Pico W
-    for STA mode - it will always return False (hence the timeout).
+    NOTE: The active method does not behave as expected on the Pico W for STA
+    mode - it will always return False (hence the timeout). This might be a
+    nuance of the Pico W and should work on other microcontrollers.
 
     Args:
-        WLAN (network.WLAN): WLAN instance.
-
-        debug (bool): Debug messages flag.
+        WLAN (network.WLAN): WLAN interface instance.
 
     Returns:
         None.
     """
-    debug_message("ACTIVATE NETWORK INTERFACE", verbose)
+    _logger.debug("ACTIVATE NETWORK INTERFACE")
     # activate network interface
     WLAN.active(True)
     try:  # 5 second timeout
         await_timeout = iter(range(5))
         while next(await_timeout) >= 0:
             if WLAN.status() == network.STAT_GOT_IP or WLAN.active():
-                debug_message("NETWORK INTERFACE ACTIVE - AP MODE", verbose)
+                _logger.debug("NETWORK INTERFACE ACTIVE - AP MODE")
                 break
             sleep(1)
     except StopIteration:
-        debug_message("NETWORK INTERFACE TIMEOUT - STA MODE", verbose)
+        _logger.debug("NETWORK INTERFACE TIMEOUT - STA MODE")
 
 
-def connect_interface(WLAN: network.WLAN, verbose: bool) -> None:
+def connect_interface(WLAN: network.WLAN) -> None:
     """Connect a WLAN interface in STA mode.
 
     A connection is attempted using credentials stored in `WLAN_SSID` &
@@ -163,8 +164,6 @@ def connect_interface(WLAN: network.WLAN, verbose: bool) -> None:
 
     Args:
         WLAN (network.WLAN): Activated WLAN interface.
-
-        debug (bool): Debug messages flag.
 
     Raises:
         WLANConnectionError: On failed connection to WiFi access point.
@@ -177,58 +176,59 @@ def connect_interface(WLAN: network.WLAN, verbose: bool) -> None:
         WLAN_PASSWORD = os.getenv("WLAN_PASSWORD")
 
         if WLAN_SSID is None:
-            debug_message("ENV $WLAN_SSID NOT SET", verbose)
+            _logger.debug("ENV $WLAN_SSID NOT SET")
             raise WLANConnectionError
 
         networks = {name.decode() for name, *_ in set(WLAN.scan()) if name}
         if WLAN_SSID not in networks:
-            debug_message(f"SSID '{WLAN_SSID}' NOT AVAILABLE", verbose)
-            debug_message(f"AVAILABLE NETWORKS: {networks}", verbose)
+            _logger.debug(f"SSID '{WLAN_SSID}' NOT AVAILABLE")
+            _logger.debug(f"AVAILABLE NETWORKS: {networks}")
             raise WLANConnectionError
 
         if WLAN_PASSWORD is None:
-            debug_message("WARNING: ENV $WLAN_PASSWORD NOT SET", verbose)
+            _logger.debug("WARNING: ENV $WLAN_PASSWORD NOT SET")
 
-        debug_message(f"CONNECTING TO SSID '{WLAN_SSID}'", verbose)
+        _logger.debug(f"CONNECTING TO SSID '{WLAN_SSID}'")
 
         # connect WLAN interface
         WLAN.connect(WLAN_SSID, WLAN_PASSWORD)
     # if WLAN is not in STA mode
     except (OSError, TypeError) as e:
-        debug_message(f"TypeError: {e}", verbose)
-        debug_message(f"WLAN CONNECT ERROR - SSID {WLAN_SSID}", verbose)
+        _logger.debug(f"TypeError: {e}")
+        _logger.debug(f"WLAN CONNECT ERROR - SSID {WLAN_SSID}")
         raise WLANConnectionError from e
     try:  # 30 second timeout
-        debug_message("WAITING FOR WLAN CONNECTION", verbose)
+        _logger.debug("WAITING FOR WLAN CONNECTION")
         await_timeout = iter(range(30))
         while next(await_timeout) >= 0:
-            debug_message(f"WLAN STATUS: {WLAN.status()}", verbose)
+            _logger.debug(f"WLAN STATUS: {WLAN.status()}")
             if (WLAN.status() == network.STAT_GOT_IP) or WLAN.isconnected():
                 break
             sleep(1)
     except StopIteration as e:
-        debug_network_status(WLAN, WLAN.IF_STA, verbose)
+        _logger.debug(network_status_message(WLAN, WLAN.IF_STA))
         raise WLANConnectionError from e
 
 
-def connection_issue(WLAN: network.WLAN, WLAN_MODE: int) -> bool:
+def connection_issue(WLAN: network.WLAN, mode: int) -> bool:
     """Test for a connection issue.
 
     Args:
         WLAN (network.WLAN): Activated WLAN interface.
 
-        verbose (bool): Debug messages flag.
+        mode (int): WLAN interface mode - client (`WLAN.IF_STA`) or
+            access point (`WLAN.IF_AP`).
 
     Returns:
         bool: True if WLAN is in AP mode or if WLAN is in STA mode and not
             connected to a WiFi access point, else False.
     """
-    return (WLAN_MODE == WLAN.IF_AP) or (
-        WLAN_MODE == WLAN.IF_STA and not WLAN.isconnected()
+    return mode == WLAN.IF_AP or (
+        mode == WLAN.IF_STA and not WLAN.isconnected()
     )
 
 
-def deactivate_interface(WLAN: network.WLAN, verbose: bool) -> None:
+def deactivate_interface(WLAN: network.WLAN) -> None:
     """Deactivate a WLAN interface.
 
     NOTE: The `WLAN.active` method does not behave as expected on the Pico W
@@ -236,30 +236,28 @@ def deactivate_interface(WLAN: network.WLAN, verbose: bool) -> None:
     be a nuance of the Pico W and should work on other microcontrollers.
 
     Args:
-        WLAN (network.WLAN): WLAN instance.
-
-        verbose (bool): Debug messages flag.
+        WLAN (network.WLAN): WLAN interface instance.
 
     Returns:
         None.
     """
-    debug_message("DEACTIVATE NETWORK INTERFACE", verbose)
+    _logger.debug("DEACTIVATE NETWORK INTERFACE")
     WLAN.active(False)
 
     try:  # 5 second timeout
         await_timeout = iter(range(5))
         while next(await_timeout) >= 0:
             if not WLAN.active():
-                debug_message("NETWORK INTERFACE INACTIVE - AP MODE", verbose)
+                _logger.debug("NETWORK INTERFACE INACTIVE - AP MODE")
                 break
             sleep(1)
     except StopIteration:
-        debug_message("DEACTIVATE NETWORK TIMEOUT - STA MODE", verbose)
+        _logger.debug("DEACTIVATE NETWORK TIMEOUT - STA MODE")
 
 
 def get_network_interface(
-        pm: Optional[int] = None, verbose: bool = False
-    ) -> tuple[network.WLAN, int]:
+    pm: Optional[int] = None, debug: bool = False
+) -> tuple[network.WLAN, int]:
     """Initialise & activate a `network.WLAN` interface instance.
 
     The interface is initialised in either STA or AP mode depending on
@@ -288,7 +286,7 @@ def get_network_interface(
         network.STAT_IDLE (0)
         network.STAT_CONNECTING (1)
         network.STAT_GOT_IP (3)
-    
+
     Power mode enumerations:
         WLAN.PM_NONE - Disable power management
         WLAN.PM_PERFORMANCE - Enable power management with a shorter timer
@@ -298,12 +296,16 @@ def get_network_interface(
         pm (int, optional): WLAN power management mode; WLAN.PM_NONE,
             WLAN.PM_PERFORMANCE or WLAN.PM_POWERSAVE. Defaults to None.
 
-        verbose (bool): Debug messages flag.
+        debug (bool): Debug messages flag.
 
     Returns:
-        tuple[network.WLAN, network.STA_IF | network.AP_IF]
+        tuple[network.WLAN, int]: An activated WLAN instance and its relevant
+            interface mode - `network.STA_IF` or `network.AP_IF`.
     """
-    debug_message("INITIALISE NETWORK WLAN INSTANCE", verbose)
+    if debug:
+        _logger.setLevel(logging.DEBUG)
+
+    _logger.debug("INITIALISE NETWORK WLAN INSTANCE")
 
     AP_SSID = os.getenv("AP_SSID")
     AP_PASSWORD = os.getenv("AP_PASSWORD")
@@ -320,11 +322,11 @@ def get_network_interface(
     # select WLAN instance mode based on credential values
     if WLAN_SSID is None or len(WLAN_SSID) < 1:
         # reset WLAN secrets
-        debug_message(f"INVALID SSID ({WLAN_SSID}) SETTING AP MODE", verbose)
+        _logger.debug(f"INVALID SSID ({WLAN_SSID}) SETTING AP MODE")
         WLAN_MODE = network.AP_IF
     else:
         WLAN_MODE = network.STA_IF
-        debug_message("SETTING WLAN MODE TO STA", verbose)
+        _logger.debug("SETTING WLAN MODE TO STA")
 
     # create WLAN instance
     WLAN = network.WLAN(WLAN_MODE)
@@ -332,21 +334,45 @@ def get_network_interface(
     if pm not in {WLAN.PM_NONE, WLAN.PM_PERFORMANCE, WLAN.PM_POWERSAVE}:
         pm = None
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=pm)
-    
-    activate_interface(WLAN, verbose)
+
+    activate_interface(WLAN)
 
     # attempt WLAN interface connection
     try:
         # successful STA mode connection
-        connect_interface(WLAN, verbose)
-        debug_message(f"WLAN CONNECTION SUCCESSFUL: {WLAN_SSID}", verbose)
+        connect_interface(WLAN)
+        _logger.debug(f"WLAN CONNECTION SUCCESSFUL: {WLAN_SSID}")
         return WLAN, WLAN_MODE
     except WLANConnectionError:
-        WLAN, WLAN_MODE = access_point_reset(WLAN, verbose)
+        WLAN, WLAN_MODE = access_point_reset(WLAN)
         return WLAN, WLAN_MODE
     except StopIteration:
         # WLAN connection timed out
-        debug_message(f"WLAN CONNECTION TO SSID {WLAN_SSID} TIMEOUT", verbose)
-        debug_message("SWITCHING TO AP MODE", verbose)
-        WLAN, WLAN_MODE = access_point_reset(WLAN, verbose)
+        _logger.debug(f"WLAN CONNECTION TO SSID {WLAN_SSID} TIMEOUT")
+        _logger.debug("SWITCHING TO AP MODE")
+        WLAN, WLAN_MODE = access_point_reset(WLAN)
         return WLAN, WLAN_MODE
+
+
+def network_status_message(WLAN: network.WLAN, mode: int) -> str:
+    """Print WLAN status debug messages.
+
+    Args:
+        WLAN (network.WLAN): WLAN interface instance.
+
+        mode (str): WLAN interface mode - client (`WLAN.IF_STA`) or
+            access point (`WLAN.IF_AP`).
+    """
+    WLAN_MODE_STR = ("STA", "AP")[mode]
+    status = WLAN.status()
+    active = WLAN.active()
+    connected = WLAN.isconnected()
+
+    return f"""
+        WLAN INFO
+        ---------
+        MODE: {WLAN_MODE_STR}
+        STATUS: {status}
+        ACTIVE: {active}
+        CONNECTED: {connected}
+        """

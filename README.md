@@ -4,9 +4,9 @@ NOTE: **WIP**
 
 This is a repository for a MicroPython package named `network-utils`, which contains utility functions related to interfaces exposed by the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library and external packages on the [`micropython-lib`](https://github.com/micropython/micropython-lib) repository.
 
-1. Uses environment variables to configure WiFi credentials for both STA and AP modes.
-2. Attempts to connect to a WiFi network in STA mode; if unsuccessful, resets the interface and starts an AP with default or environment-provided credentials.
-3. Provides helper functions for activating/deactivating interfaces, printing debug information, and checking connection status.
+1. Uses environment variables to configure WiFi credentials for both client (STA) and access point (AP) modes.
+2. Attempts WiFi connection in STA mode; if unsuccessful, resets interface to AP with default or environment-provided credentials.
+3. Provides helper functions for activating, deactivating, connecting interfaces and checking connection status.
 4. Implements timeouts for network operations to handle hardware-specific quirks
 
 ```mermaid
@@ -23,7 +23,7 @@ flowchart TD
 * `typing`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing.py)
 * `typing_extensions`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing_extensions.py)
 
-This package follows the ***extension package*** concept outlined in the [micropython-lib](https://github.com/micropython/micropython-lib) repository. Extension packages will extend the functionality of the `network-utils` package, by adding additional files to the same package directory. These packages will follow the naming convention `network-utils-*` and will install extra modules to a directory named `network_utils` on the device
+This package follows the ***extension package*** concept outlined in the [micropython-lib](https://github.com/micropython/micropython-lib) repository. Extension packages will extend the functionality of the `network-utils` package, by adding additional files to the same package directory. These packages will follow the naming convention `network-utils-*` and will install extra modules to a directory named `network_utils` on the device.
 
 e.g. `network-utils` would install `__init__.py` file on the device as `lib/network_utils/__init__.py` and the `network-utils-mqtt` extension package would install `mqtt.py` as `lib/network_utils/mqtt.py`.
 
@@ -33,15 +33,15 @@ Installation of `network-utils` will only install files that are part of the `ne
 micropython-network-utils
 ├── network-utils          <-- network-utils package
 │   ├── manifest.py
-│   ├── network_utils      <-- device installation dir i.e. `lib/network_utils/__init__.py`
-│   │   └── __init__.py
+│   ├── network_utils      <-- device installation dir i.e. `lib/network_utils/`
+│   │   └── __init__.py    <-- package module
 │   └── package.json       <-- package URLs & dependencies 
-├── network-utils-mqtt     <-- Extension package for network-utils
+├── network-utils-mqtt     <-- Extension package for `network-utils`
 │   ├── manifest.py
-│   ├── network_utils      <-- device installation dir i.e. i.e. `lib/network_utils/mqtt.py`
-│   │   └── mqtt.py
-│   ├── package.json       <-- extension package URLs & dependencies (includes network-utils)
-│   └── test_wlan.py
+│   ├── network_utils      <-- device installation dir i.e. `lib/network_utils/`
+│   │   └── mqtt.py        <-- extension package module
+│   ├── package.json       <-- extension package URLs & dependencies (includes `network-utils`)
+│   └── test_wlan.py       <-- extension package unit tests
 ```
 
 ## Cloning The Repository
@@ -58,19 +58,21 @@ uv sync
 
 The following commands will install the `network-utils` package based on the URLs and dependencies listed in the `network-utils/package.json`.
 
-### REPL
-
-The following code will import `mip` and install the `network-utils` package from the REPL.
-
-```python
->>> import mip
->>> mip.install("gitlab:micropython-iot-projects/libraries/micropython-network-utils/network-utils", version="main")
-```
+Note that because we have repositories within sub-groups, the usual installation URLs such as `gitlab:org/repo-name@main` or `gitlab:org/repo-name/dir/__init__.py` will not work. The `mip` package installer always assumes that the first URL component is the org and the second is the repository slug, resulting incorrect parsed URLs for package download/installation (for these nested repositories).
 
 ### mpremote
 
-The following commands will install the `network-utils` package on your device using `mpremote` Python package.
+The following commands will install the `network-utils` package on your device using the `mpremote` Python package.
 
 ```sh
-mpremote mip install gitlab:micropython-iot-projects/libraries/micropython-network-utils/network-utils@main
+mpremote mip install https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json
+```
+
+### REPL
+
+The following code will import `mip` and install the `network-utils` package from the REPL, provided you have a connected and network-capable board.
+
+```python
+>>> import mip
+>>> mip.install("https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json")
 ```

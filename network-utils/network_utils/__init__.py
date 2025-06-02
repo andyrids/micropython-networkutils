@@ -75,7 +75,7 @@ except ImportError:
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
 
-_formatter = logging.Formatter("%(asctime)s - %(name)s - %(message)s")
+_formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
 _stream_handler = logging.StreamHandler(stream=sys.stdout)
 _stream_handler.setFormatter(_formatter)
 _logger = logging.getLogger(__name__)
@@ -388,6 +388,8 @@ def get_network_interface(
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=pm)
 
     activate_interface(WLAN)
+    if WLAN_MODE == network.AP_IF:
+        return WLAN, WLAN_MODE
 
     # attempt WLAN interface connection
     try:

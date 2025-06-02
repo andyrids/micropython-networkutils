@@ -60,6 +60,12 @@ The following commands will install the `network-utils` package based on the URL
 
 Note that because we have repositories within sub-groups, the usual installation URLs such as `gitlab:org/repo-name@main` or `gitlab:org/repo-name/dir/__init__.py` will not work. The `mip` package installer always assumes that the first URL component is the org and the second is the repository slug, resulting incorrect parsed URLs for package download/installation (for these nested repositories).
 
+You can format and reset your device with `mpremote` using the following command:
+
+```sh
+mpremote exec --no-follow "import os, machine, rp2; os.umount('/'); bdev = rp2.Flash(); os.VfsLfs2.mkfs(bdev, progsize=256); vfs = os.VfsLfs2(bdev, progsize=256); os.mount(vfs, '/'); machine.reset()"
+```
+
 ### mpremote
 
 The following commands will install the `network-utils` package on your device using the `mpremote` Python package.

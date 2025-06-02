@@ -44,11 +44,11 @@ Functions:
 
 Examples:
     import os
-    from network_utils import get_network_interface, _logger
+    from network_utils import NetworkEnv, get_network_interface, _logger
 
-
-    os.putenv("WLAN_SSID", "your SSID")
-    os.putenv("WLAN_PASSWORD", "your PASSWORD")
+    env = NetworkEnv()
+    env.putenv("WLAN_SSID", "your SSID")
+    env.putenv("WLAN_PASSWORD", "your PASSWORD")
 
     WLAN, WLAN_MODE = get_network_interface(debug=True)
 
@@ -59,13 +59,14 @@ Examples:
 """
 
 import binascii
+from ctypes import Union
 import logging
 import machine
 import network
 import os
 import sys
 from time import sleep
-from typing import Optional
+from typing import Optional, Union
 
 # optional `network-utils-*` extension dependencies
 try:
@@ -86,6 +87,50 @@ class CertificateNotFound(Exception):
 
     pass
 
+
+class NetworkEnv:
+    """Network environment variable class."""
+    _instance = None
+    _env = {}
+
+    def __new__(cls) -> "NetworkEnv":
+        """Return a `singleton` instance of the `NetworkEnv` class.
+
+        Returns:
+            NetworkEnv: A new (if not previously initialised) or singleton
+                instance of the `NetworkEnv` class.
+        """
+        if cls._instance is None:
+            cls._instance = super(NetworkEnv, cls).__new__(cls)
+            # extra initialisation here...
+        return cls._instance
+    
+
+    def getenv(self, key: str) -> Union[str, None]:
+        """Get environment variable from `_env` property.
+
+        Args:
+            key (str): Environment variable key.
+
+        Returns:
+            Union[str, None]: Environment variable value or None.
+        """
+        value = self._env.get(key)
+        return str(value) if value else None
+
+
+    def putenv(self, key: str, value:str) -> None:
+        """Set environment variable in `_env` property.
+
+        Args:
+            key (str): Environment variable key.
+
+            value (str): Environment variable value.
+        
+        Returns:
+            None.
+        """
+        self._env[key] = value
 
 class WLANConnectionError(Exception):
     """Raised on failed WLAN connection."""
@@ -112,9 +157,11 @@ def access_point_reset(WLAN: network.WLAN) -> tuple[network.WLAN, int]:
     deactivate_interface(WLAN)
     WLAN.deinit()
 
+    env = NetworkEnv()
+
     WLAN = network.WLAN(network.AP_IF)
-    AP_SSID = os.getenv("AP_SSID")
-    AP_PASSWORD = os.getenv("AP_PASSWORD")
+    AP_SSID = env.getenv("AP_SSID")
+    AP_PASSWORD = env.getenv("AP_PASSWORD")
     if AP_SSID is None or AP_PASSWORD is None:
         _logger.debug("ENV $AP_SSID & $AP_PASSWORD NOT SET")
         AP_SSID = f"DEVICE-{_DEVICE_ID}"
@@ -172,8 +219,10 @@ def connect_interface(WLAN: network.WLAN) -> None:
         None.
     """
     try:
-        WLAN_SSID = os.getenv("WLAN_SSID")
-        WLAN_PASSWORD = os.getenv("WLAN_PASSWORD")
+        env = NetworkEnv()
+
+        WLAN_SSID = env.getenv("WLAN_SSID")
+        WLAN_PASSWORD = env.getenv("WLAN_PASSWORD")
 
         if WLAN_SSID is None:
             _logger.debug("ENV $WLAN_SSID NOT SET")
@@ -307,17 +356,19 @@ def get_network_interface(
 
     _logger.debug("INITIALISE NETWORK WLAN INSTANCE")
 
-    AP_SSID = os.getenv("AP_SSID")
-    AP_PASSWORD = os.getenv("AP_PASSWORD")
+    env = NetworkEnv()
+
+    AP_SSID = env.getenv("AP_SSID")
+    AP_PASSWORD = env.getenv("AP_PASSWORD")
 
     # initial declaration of AP SSID & PASSWORD based on unique ID
     if AP_SSID is None or AP_PASSWORD is None:
         AP_SSID = f"DEVICE-{_DEVICE_ID}"
         AP_PASSWORD = _DEVICE_ID
-        os.putenv("AP_SSID", AP_SSID)
-        os.putenv("AP_PASSWORD", _DEVICE_ID)
+        env.putenv("AP_SSID", AP_SSID)
+        env.putenv("AP_PASSWORD", _DEVICE_ID)
 
-    WLAN_SSID = os.getenv("WLAN_SSID")
+    WLAN_SSID = env.getenv("WLAN_SSID")
 
     # select WLAN instance mode based on credential values
     if WLAN_SSID is None or len(WLAN_SSID) < 1:

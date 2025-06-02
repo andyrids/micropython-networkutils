@@ -43,7 +43,6 @@ Functions:
     debug_network_status: Print WLAN status debug messages.
 
 Examples:
-    import os
     from network_utils import NetworkEnv, get_network_interface, _logger
 
     env = NetworkEnv()

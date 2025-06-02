@@ -1,0 +1,13 @@
+{
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none"
+    },
+    "python.analysis.typeshedPaths": [
+        //".venv/lib/python3.13/site-packages",
+        "${command:python.interpreterPath}/../lib/python*/site-packages",
+        "typings"
+    ],
+    "cSpell.words": [
+        "pimoroni"
+    ],
+}

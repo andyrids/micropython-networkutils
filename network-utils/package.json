@@ -1,0 +1,11 @@
+{
+    "urls": [
+        ["network_utils/__init__.py", "https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/network_utils/__init__.py"]
+    ],
+    "deps": [
+        ["logging", "latest"],
+        ["github:josverl/micropython-stubs/mip/typing.mpy", "main"],
+        ["github:josverl/micropython-stubs/mip/typing_extensions.mpy", "main"]
+    ],
+    "version": "0.0.1"
+}

@@ -1,93 +1,143 @@
-# mpy-wlan
+# MicroPython Package Repository - `network-utils`
 
+NOTE: **WIP**
 
+This is a repository for a MicroPython package named `network-utils`, which contains utility functions related to interfaces exposed by the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library and external packages on the [`micropython-lib`](https://github.com/micropython/micropython-lib) repository.
 
-## Getting started
+1. Uses environment variables to configure WiFi credentials for both client (STA) and access point (AP) modes.
+2. Attempts WiFi connection in STA mode; if unsuccessful, resets interface to AP with default or environment-provided credentials.
+3. Provides helper functions for activating, deactivating, connecting interfaces and checking connection status.
+4. Implements timeouts for network operations to handle hardware-specific quirks
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```mermaid
+flowchart TD
+    A[Start] --> B{STA credentials set?}
+    B -- No --> C[Set AP mode]
+    B -- Yes --> D[Set STA mode]
+    D --> E{STA connect success?}
+    E -- Yes --> F[Return STA interface]
+    E -- No --> C
+    C --> G[Return AP interface]
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/andyrids-micropython/libraries/mpy-wlan.git
-git branch -M main
-git push -uf origin main
+
+* `typing`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing.py)
+* `typing_extensions`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing_extensions.py)
+
+This package follows the ***extension package*** concept outlined in the [micropython-lib](https://github.com/micropython/micropython-lib) repository. Extension packages will extend the functionality of the `network-utils` package, by adding additional files to the same package directory. These packages will follow the naming convention `network-utils-*` and will install extra modules to a directory named `network_utils` on the device.
+
+e.g. `network-utils` would install `__init__.py` file on the device as `lib/network_utils/__init__.py` and the `network-utils-mqtt` extension package would install `mqtt.py` as `lib/network_utils/mqtt.py`.
+
+Installation of `network-utils` will only install files that are part of the `network-utils` package whereas installation of `network-utils-mqtt` will install the package extension files along with the `network-utils` package it extends.
+
+```text
+micropython-network-utils
+├── network-utils          <-- network-utils package
+│   ├── manifest.py
+│   ├── network_utils      <-- device installation dir i.e. `lib/network_utils/`
+│   │   └── __init__.py    <-- package module
+│   └── package.json       <-- package URLs & dependencies 
+├── network-utils-mqtt     <-- Extension package for `network-utils`
+│   ├── manifest.py
+│   ├── network_utils      <-- device installation dir i.e. `lib/network_utils/`
+│   │   └── mqtt.py        <-- extension package module
+│   ├── package.json       <-- extension package URLs & dependencies (includes `network-utils`)
+│   └── test_wlan.py       <-- extension package unit tests
 ```
 
-## Integrate with your tools
+## Cloning The Repository
 
-- [ ] [Set up project integrations](https://gitlab.com/andyrids-micropython/libraries/mpy-wlan/-/settings/integrations)
+This repository is managed by Astral [`uv`](https://docs.astral.sh/uv/) Python package manager and can be installed by cloning the repository and syncing with uv.
 
-## Collaborate with your team
+```sh
+git clone git@gitlab.com:micropython-iot-projects/libraries/micropython-network-utils.git
+cd micropython-network-utils
+uv sync
+```
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## MicroPython Package Installation
 
-## Test and Deploy
+The following commands will install the `network-utils` package based on the URLs and dependencies listed in the `network-utils/package.json`.
 
-Use the built-in continuous integration in GitLab.
+Note that because we have repositories within sub-groups, the usual installation URLs such as `gitlab:org/repo-name@main` or `gitlab:org/repo-name/dir/__init__.py` will not work. The `mip` package installer always assumes that the first URL component is the org and the second is the repository slug, resulting incorrect parsed URLs for package download/installation (for these nested repositories).
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+You can format and reset your device with `mpremote` using the following command:
 
-***
+```sh
+mpremote exec --no-follow "import os, machine, rp2; os.umount('/'); bdev = rp2.Flash(); os.VfsLfs2.mkfs(bdev, progsize=256); vfs = os.VfsLfs2(bdev, progsize=256); os.mount(vfs, '/'); machine.reset()"
+```
 
-# Editing this README
+### mpremote
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+The following commands will install the `network-utils` package on your device using the `mpremote` Python package.
 
-## Suggestions for a good README
+```sh
+mpremote mip install https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json
+```
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### REPL
 
-## Name
-Choose a self-explaining name for your project.
+The following code will import `mip` and install the `network-utils` package from the REPL, provided you have a connected and network-capable board.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+```python
+>>> import mip
+>>> mip.install("https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json")
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+## Example Usage
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+Environment variables relevant to network configuration, can be set and retrieved using the `network_utils.NetworkEnv` singleton class.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Environment variables:
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+* `WLAN_SSID` - Network SSID (STA mode)
+* `WLAN_PASSWORD` - Network password (STA mode)
+* `AP_SSID` - Your device network SSID (AP mode)
+* `AP_PASSWORD` - Your device network password (AP mode)
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```python
+from network_utils import (
+    NetworkEnv, connection_issue, get_network_interface, _logger
+)
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+env = NetworkEnv()
+env.putenv("WLAN_SSID", "your SSID")
+env.putenv("WLAN_PASSWORD", "your PASSWORD")
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+# set `debug` parameter to `True` for verbose debug messages
+WLAN, WLAN_MODE = get_network_interface(debug=True)
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+if not connection_issue(WLAN, WLAN_MODE):
+    _logger.debug("STA CONNECTION ESTABLISHED")
+else:
+    _logger.debug("CONNECTION ERROR, WLAN IN AP MODE")
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+If successfully connected to a WiFi in STA mode, you should see output like the following:
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```sh
+DEBUG:network_utils:INITIALISE NETWORK WLAN INSTANCE
+DEBUG:network_utils:SETTING WLAN MODE TO STA
+DEBUG:network_utils:ACTIVATE NETWORK INTERFACE
+DEBUG:network_utils:NETWORK INTERFACE ACTIVE - AP MODE
+DEBUG:network_utils:CONNECTING TO SSID 'S23'
+DEBUG:network_utils:WAITING FOR WLAN CONNECTION
+DEBUG:network_utils:WLAN STATUS: 1
+DEBUG:network_utils:WLAN STATUS: 1
+DEBUG:network_utils:WLAN STATUS: 1
+DEBUG:network_utils:WLAN STATUS: 2
+DEBUG:network_utils:WLAN STATUS: 2
+DEBUG:network_utils:WLAN STATUS: 3
+DEBUG:network_utils:WLAN CONNECTION SUCCESSFUL: S23
+DEBUG:network_utils:STA CONNECTION ESTABLISHED
+```
 
-## License
-For open source projects, say how it is licensed.
+If there was a connection error or if no configuration variables were set, the device should start in AP mode with output like the following:
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```sh
+DEBUG:network_utils:INITIALISE NETWORK WLAN INSTANCE
+DEBUG:network_utils:INVALID SSID (None) SETTING AP MODE
+DEBUG:network_utils:ACTIVATE NETWORK INTERFACE
+DEBUG:network_utils:NETWORK INTERFACE ACTIVE - AP MODE
+```
+
+You should see your device AP listed as something like `DEVICE-E66164084373532B` in your available networks on your PC or mobile.

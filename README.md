@@ -111,3 +111,33 @@ if not connection_issue(WLAN, WLAN_MODE):
 else:
     _logger.debug("CONNECTION ERROR, WLAN IN AP MODE")
 ```
+
+If successfully connected to a WiFi in STA mode, you should see output like the following:
+
+```sh
+DEBUG:network_utils:INITIALISE NETWORK WLAN INSTANCE
+DEBUG:network_utils:SETTING WLAN MODE TO STA
+DEBUG:network_utils:ACTIVATE NETWORK INTERFACE
+DEBUG:network_utils:NETWORK INTERFACE ACTIVE - AP MODE
+DEBUG:network_utils:CONNECTING TO SSID 'S23'
+DEBUG:network_utils:WAITING FOR WLAN CONNECTION
+DEBUG:network_utils:WLAN STATUS: 1
+DEBUG:network_utils:WLAN STATUS: 1
+DEBUG:network_utils:WLAN STATUS: 1
+DEBUG:network_utils:WLAN STATUS: 2
+DEBUG:network_utils:WLAN STATUS: 2
+DEBUG:network_utils:WLAN STATUS: 3
+DEBUG:network_utils:WLAN CONNECTION SUCCESSFUL: S23
+DEBUG:network_utils:STA CONNECTION ESTABLISHED
+```
+
+If there was a connection error or if no configuration variables were set, the device should start in AP mode with output like the following:
+
+```sh
+DEBUG:network_utils:INITIALISE NETWORK WLAN INSTANCE
+DEBUG:network_utils:INVALID SSID (None) SETTING AP MODE
+DEBUG:network_utils:ACTIVATE NETWORK INTERFACE
+DEBUG:network_utils:NETWORK INTERFACE ACTIVE - AP MODE
+```
+
+You should see your device AP listed as something like `DEVICE-E66164084373532B` in your available networks on your PC or mobile.

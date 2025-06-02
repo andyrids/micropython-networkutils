@@ -384,7 +384,7 @@ def get_network_interface(
     WLAN = network.WLAN(WLAN_MODE)
     # config WLAN AP with SSID & KEY values
     if pm not in {WLAN.PM_NONE, WLAN.PM_PERFORMANCE, WLAN.PM_POWERSAVE}:
-        pm = None
+        pm = WLAN.PM_NONE
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=pm)
 
     activate_interface(WLAN)

@@ -59,7 +59,6 @@ Examples:
 """
 
 import binascii
-from ctypes import Union
 import logging
 import machine
 import network

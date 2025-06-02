@@ -245,8 +245,8 @@ def connect_interface(WLAN: network.WLAN) -> None:
         WLAN.connect(WLAN_SSID, WLAN_PASSWORD)
     # if WLAN is not in STA mode
     except (OSError, TypeError) as e:
-        _logger.debug(f"TypeError: {e}")
-        _logger.debug(f"WLAN CONNECT ERROR - SSID {WLAN_SSID}")
+        _logger.error(f"TypeError: {e}")
+        _logger.error(f"WLAN CONNECT ERROR - SSID {WLAN_SSID}")
         raise WLANConnectionError from e
     try:  # 30 second timeout
         _logger.debug("WAITING FOR WLAN CONNECTION")
@@ -257,6 +257,7 @@ def connect_interface(WLAN: network.WLAN) -> None:
                 break
             sleep(1)
     except StopIteration as e:
+        _logger.error(f"WLAN CONNECTION TO SSID {WLAN_SSID} TIMEOUT")
         _logger.debug(network_status_message(WLAN, WLAN.IF_STA))
         raise WLANConnectionError from e
 

@@ -75,7 +75,9 @@ except ImportError:
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
 
+_formatter = logging.Formatter("%(asctime)s - %(name)s - %(message)s")
 _stream_handler = logging.StreamHandler(stream=sys.stdout)
+_stream_handler.setFormatter(_formatter)
 _logger = logging.getLogger(__name__)
 _logger.addHandler(_stream_handler)
 _logger.setLevel(logging.ERROR)

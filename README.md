@@ -82,3 +82,32 @@ The following code will import `mip` and install the `network-utils` package fro
 >>> import mip
 >>> mip.install("https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json")
 ```
+
+## Example Usage
+
+Environment variables relevant to network configuration, can be set and retrieved using the `network_utils.NetworkEnv` singleton class.
+
+Environment variables:
+
+* `WLAN_SSID` - Network SSID (STA mode)
+* `WLAN_PASSWORD` - Network password (STA mode)
+* `AP_SSID` - Your device network SSID (AP mode)
+* `AP_PASSWORD` - Your device network password (AP mode)
+
+```python
+from network_utils import (
+    NetworkEnv, connection_issue, get_network_interface, _logger
+)
+
+env = NetworkEnv()
+env.putenv("WLAN_SSID", "your SSID")
+env.putenv("WLAN_PASSWORD", "your PASSWORD")
+
+# set `debug` parameter to `True` for verbose debug messages
+WLAN, WLAN_MODE = get_network_interface(debug=True)
+
+if not connection_issue(WLAN, WLAN_MODE):
+    _logger.debug("STA CONNECTION ESTABLISHED")
+else:
+    _logger.debug("CONNECTION ERROR, WLAN IN AP MODE")
+```

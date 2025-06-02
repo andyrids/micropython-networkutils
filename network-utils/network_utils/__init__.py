@@ -43,7 +43,9 @@ Functions:
     debug_network_status: Print WLAN status debug messages.
 
 Examples:
-    from network_utils import NetworkEnv, get_network_interface, _logger
+    from network_utils import (
+        NetworkEnv, connection_issue, get_network_interface, _logger
+    )
 
     env = NetworkEnv()
     env.putenv("WLAN_SSID", "your SSID")

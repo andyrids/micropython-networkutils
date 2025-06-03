@@ -1,6 +1,6 @@
 # MicroPython Package Repository - `network-utils`
 
-NOTE: The main repo is @ [GitLab](https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils) and is mirrored here on GitHub.
+NOTE: The main repo is @ [GitLab](https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils) and is mirrored @ [GitHub](https://github.com/andyrids/micropython-network-utils).
 
 This is a repository for a MicroPython package named `network-utils`, which contains utility functions related to interfaces exposed by the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library and external packages on the [`micropython-lib`](https://github.com/micropython/micropython-lib) repository.
 

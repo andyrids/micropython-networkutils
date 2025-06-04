@@ -3,7 +3,7 @@ name = "micropython-network-utils"
 description = "Micropython network interface utility package."
 authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
-version = "0.1.0"
+version = "0.0.1"
 license = {file = "LICENSE"}
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
@@ -86,12 +86,12 @@ replace = 'version = "{new_version}"'
 
 # update package.json version
 [[tool.bumpversion.files]]
-filename = "package.json"
+filename = "network-utils/package.json"
 search = '"version": "{current_version}"'
 replace = '"version": "{new_version}"'
 
 # update package manifest.py version
 [[tool.bumpversion.files]]
-filename = "connection/manifest.py"
+filename = "network-utils/manifest.py"
 search = 'version="{current_version}"'
 replace = 'version="{new_version}"'

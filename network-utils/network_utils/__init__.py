@@ -25,6 +25,8 @@ Copyright (C): 2025.
 Exceptions:
     WLANConnectionError: Raised on failed WLAN connection.
 
+    WLANTimeoutError: Raised on WLAN connection timeout.
+
 Functions:
     access_point_reset: Reset a WLAN instance and restart in Access Point
         (AP) mode.
@@ -92,6 +94,7 @@ class CertificateNotFound(Exception):
 
 class NetworkEnv:
     """Network environment variable class."""
+
     _instance = None
     _env = {}
 
@@ -106,7 +109,6 @@ class NetworkEnv:
             cls._instance = super(NetworkEnv, cls).__new__(cls)
             # extra initialisation here...
         return cls._instance
-    
 
     def getenv(self, key: str) -> Union[str, None]:
         """Get environment variable from `_env` property.
@@ -120,22 +122,28 @@ class NetworkEnv:
         value = self._env.get(key)
         return str(value) if value else None
 
-
-    def putenv(self, key: str, value:str) -> None:
+    def putenv(self, key: str, value: str) -> None:
         """Set environment variable in `_env` property.
 
         Args:
             key (str): Environment variable key.
 
             value (str): Environment variable value.
-        
+
         Returns:
             None.
         """
         self._env[key] = value
 
+
 class WLANConnectionError(Exception):
     """Raised on failed WLAN connection."""
+
+    pass
+
+
+class WLANTimeoutError(Exception):
+    """Raised on failed WLAN connection timeout."""
 
     pass
 
@@ -232,12 +240,12 @@ def connect_interface(WLAN: network.WLAN) -> None:
 
         networks = {name.decode() for name, *_ in set(WLAN.scan()) if name}
         if WLAN_SSID not in networks:
-            _logger.debug(f"SSID '{WLAN_SSID}' NOT AVAILABLE")
+            _logger.warning(f"SSID '{WLAN_SSID}' NOT AVAILABLE")
             _logger.debug(f"AVAILABLE NETWORKS: {networks}")
             raise WLANConnectionError
 
         if WLAN_PASSWORD is None:
-            _logger.debug("WARNING: ENV $WLAN_PASSWORD NOT SET")
+            _logger.warning("WARNING: ENV $WLAN_PASSWORD NOT SET")
 
         _logger.debug(f"CONNECTING TO SSID '{WLAN_SSID}'")
 
@@ -259,7 +267,7 @@ def connect_interface(WLAN: network.WLAN) -> None:
     except StopIteration as e:
         _logger.error(f"WLAN CONNECTION TO SSID {WLAN_SSID} TIMEOUT")
         _logger.debug(network_status_message(WLAN, WLAN.IF_STA))
-        raise WLANConnectionError from e
+        raise WLANTimeoutError from e
 
 
 def connection_issue(WLAN: network.WLAN, mode: int) -> bool:
@@ -388,7 +396,6 @@ def get_network_interface(
     if pm not in {WLAN.PM_NONE, WLAN.PM_PERFORMANCE, WLAN.PM_POWERSAVE}:
         pm = WLAN.PM_NONE
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=pm)
-
     activate_interface(WLAN)
     if WLAN_MODE == network.AP_IF:
         return WLAN, WLAN_MODE
@@ -399,13 +406,8 @@ def get_network_interface(
         connect_interface(WLAN)
         _logger.debug(f"WLAN CONNECTION SUCCESSFUL: {WLAN_SSID}")
         return WLAN, WLAN_MODE
-    except WLANConnectionError:
-        WLAN, WLAN_MODE = access_point_reset(WLAN)
-        return WLAN, WLAN_MODE
-    except StopIteration:
-        # WLAN connection timed out
-        _logger.debug(f"WLAN CONNECTION TO SSID {WLAN_SSID} TIMEOUT")
-        _logger.debug("SWITCHING TO AP MODE")
+    except (WLANConnectionError, WLANTimeoutError):
+        _logger.error("RESETTING TO AP MODE")
         WLAN, WLAN_MODE = access_point_reset(WLAN)
         return WLAN, WLAN_MODE
 

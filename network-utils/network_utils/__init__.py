@@ -94,6 +94,7 @@ class CertificateNotFound(Exception):
 
 class NetworkEnv:
     """Network environment variable class."""
+
     _instance = None
     _env = {}
 
@@ -108,7 +109,6 @@ class NetworkEnv:
             cls._instance = super(NetworkEnv, cls).__new__(cls)
             # extra initialisation here...
         return cls._instance
-    
 
     def getenv(self, key: str) -> Union[str, None]:
         """Get environment variable from `_env` property.
@@ -122,19 +122,19 @@ class NetworkEnv:
         value = self._env.get(key)
         return str(value) if value else None
 
-
-    def putenv(self, key: str, value:str) -> None:
+    def putenv(self, key: str, value: str) -> None:
         """Set environment variable in `_env` property.
 
         Args:
             key (str): Environment variable key.
 
             value (str): Environment variable value.
-        
+
         Returns:
             None.
         """
         self._env[key] = value
+
 
 class WLANConnectionError(Exception):
     """Raised on failed WLAN connection."""

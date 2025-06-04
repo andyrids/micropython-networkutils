@@ -1,6 +1,30 @@
 # Contribution Guidelines
 
-Contributions are welcome.
+Contributions are welcome and these should ideally be made through the main repository on [GitLab](https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils).
+
+## New Issues; Bugs & Features
+
+### Features
+
+Choose a suitable title and use a story format that explains the feature in depth:
+
+```txt
+As a [developer | user | system], instead of [current situation], I want [action | feature], so that [value | justification].
+```
+
+Issue description templates can help provide a useful format and context:
+
+![issue example](./docs/img/new_feature_issue.png)
+
+Full example:
+
+![issue example](./docs/img/issue_example.png)
+
+### Bugs
+
+Use the `New Bug` description template when creating issues related to bugs:
+
+![issue example](./docs/img/new_bug_issue.png)
 
 ## Cloning The Repository
 

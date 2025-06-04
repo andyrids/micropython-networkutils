@@ -25,7 +25,7 @@ With the virtual environment activated, the `ruff` check & format commands will 
 To run the ruff linting tool, use the following command:
 
 ```sh
-ruff check
+ruff check --fix
 ```
 
 To format the code in accordance with the project formatting rules, use the following command:

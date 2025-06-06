@@ -165,6 +165,35 @@ wheels = [
 ]
 
 [[package]]
+name = "micropython-network-utils"
+version = "0.0.1"
+source = { virtual = "." }
+dependencies = [
+    { name = "micropython-rp2-rpi-pico-w-stubs" },
+    { name = "micropython-stdlib-stubs" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "bump-my-version" },
+    { name = "mpremote" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "micropython-rp2-rpi-pico-w-stubs" },
+    { name = "micropython-stdlib-stubs" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "bump-my-version", specifier = ">=1.1.2" },
+    { name = "mpremote", specifier = ">=1.25.0" },
+    { name = "ruff", specifier = ">=0.11.5" },
+]
+
+[[package]]
 name = "micropython-rp2-rpi-pico-w-stubs"
 version = "1.25.0.post1"
 source = { registry = "https://pypi.org/simple" }
@@ -194,35 +223,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/86/1d/4a194eb385133349954cbf269e673e59e28b9510c7805e955da1cd32f4c6/mpremote-1.25.0.tar.gz", hash = "sha256:d0dcd8ab364d87270e1766308882e536e541052efd64aadaac83bc7ebbea2815", size = 29082, upload-time = "2025-04-15T14:38:04.012Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ff/77/d43d7bf9aa637c7b2788c48fc4eb131a9bb4cb24568297453c2537fd621d/mpremote-1.25.0-py3-none-any.whl", hash = "sha256:42691ff8f7ea4b5f2fc1b51de99609995d383671a4b4d4daad8cbd486d26aa23", size = 33555, upload-time = "2025-04-15T14:38:02.68Z" },
-]
-
-[[package]]
-name = "mpy-connection"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "micropython-rp2-rpi-pico-w-stubs" },
-    { name = "micropython-stdlib-stubs" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "bump-my-version" },
-    { name = "mpremote" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "micropython-rp2-rpi-pico-w-stubs" },
-    { name = "micropython-stdlib-stubs" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "bump-my-version", specifier = ">=1.1.2" },
-    { name = "mpremote", specifier = ">=1.25.0" },
-    { name = "ruff", specifier = ">=0.11.5" },
 ]
 
 [[package]]

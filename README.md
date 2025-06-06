@@ -20,6 +20,8 @@ flowchart TD
     C --> G[Return AP interface]
 ```
 
+This package facilitates MicroPython development in VSCode through the settings in `.vscode` and the [`micropython-stdlib-stubs`](https://github.com/Josverl/micropython-stubs) project dependency. Type hints on MicroPython code are enabled through the following files, which are included as a package dependency and installed to the device `lib/` directory:
+
 * `typing`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing.py)
 * `typing_extensions`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing_extensions.py)
 
@@ -58,7 +60,7 @@ uv sync
 
 The following commands will install the `network-utils` package based on the URLs and dependencies listed in the `network-utils/package.json`.
 
-Note that because we have repositories within sub-groups, the usual installation URLs such as `gitlab:org/repo-name@main` or `gitlab:org/repo-name/dir/__init__.py` will not work. The `mip` package installer always assumes that the first URL component is the org and the second is the repository slug, resulting incorrect parsed URLs for package download/installation (for these nested repositories).
+Note that because we have repositories within sub-groups, the usual installation URLs such as `gitlab:org/repo-name@main` or `gitlab:org/repo-name/dir/__init__.py` will not work. The `mip` package installer always assumes that the first URL component is the org and the second is the repository slug, resulting incorrect parsed URLs for package download/installation (for these nested repositories). This issue is mitigated by using raw URLs in the `package.json` files and you can use the installation URLs for the GitHub mirror repo i.e. github:andyrids/micropython-network-utils/network-utils/.
 
 You can format and reset your device with `mpremote` using the following command:
 
@@ -68,10 +70,16 @@ mpremote exec --no-follow "import os, machine, rp2; os.umount('/'); bdev = rp2.F
 
 ### mpremote
 
-The following commands will install the `network-utils` package on your device using the `mpremote` Python package.
+The following commands will install the `network-utils` package on your device using the `mpremote` Python package. Note that the `package.json` is optional as `mip` will add it, if the URL ends without a `.mpy`, `.py` or `.json` extension.
 
 ```sh
 mpremote mip install https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json
+```
+
+The following command will install the package using the mirrored repository on GitHub:
+
+```sh
+mpremote mip install github:andyrids/micropython-network-utils/network-utils/
 ```
 
 ### REPL
@@ -81,6 +89,13 @@ The following code will import `mip` and install the `network-utils` package fro
 ```python
 >>> import mip
 >>> mip.install("https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json")
+```
+
+GitHub mirrored repository alternate installation:
+
+```python
+>>> import mip
+>>> mip.install("github:andyrids/micropython-network-utils/network-utils/")
 ```
 
 ## Example Usage

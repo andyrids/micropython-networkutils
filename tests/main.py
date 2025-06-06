@@ -26,19 +26,40 @@ if __name__ == "__main__":
 
             # write a ctl+c
             #serial_transport.serial.write(b"\x03")
-
+            out = serial_transport.fs_listdir()
+            _console.print(out)
 
             out = serial_transport.exec("import sys; print(sys.implementation.name)")
             _console.print(out.decode().strip())
 
+            out = serial_transport.exec("import network_utils")
+
+            out = serial_transport.exec("print(network_utils._DEVICE_ID)")
+            _console.print(out.decode().strip())
+
+            exp = (
+            'env = network_utils.NetworkEnv();'
+            'env.putenv("WLAN_SSID", "your SSID");'
+            'env.putenv("WLAN_PASSWORD", "your PASSWORD");'
+            )
+
+            out = serial_transport.exec(exp)
+
+            out = serial_transport.exec("print(env.getenv('WLAN_SSID'))")
+            _console.print(out.decode().strip())
+
+            out = serial_transport.exec("print(env.getenv('WLAN_PASSWORD'))")
+            _console.print(out.decode().strip())
+
+            out = serial_transport.exec("print(network_utils._DEVICE_ID)")
+            _console.print(out.decode().strip())
+
             # out = serial_transport.exec_raw("import sys; print(sys.implimentation.name)")
             # _console.print(*(i.decode() for i in out))
-            out = serial_transport.fs_listdir()
-            _console.print(out)
             
             serial_transport.exit_raw_repl()
             serial_transport.close()
-    except Exception as e:
+    except (Exception, transport_serial.TransportExecError) as e:
         _console.print_exception()
         serial_transport.exit_raw_repl()
         serial_transport.close()

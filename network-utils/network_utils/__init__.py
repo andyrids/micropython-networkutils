@@ -176,8 +176,8 @@ def access_point_reset(WLAN: network.WLAN) -> tuple[network.WLAN, int]:
         _logger.debug("ENV $AP_SSID & $AP_PASSWORD NOT SET")
         AP_SSID = f"DEVICE-{_DEVICE_ID}"
         AP_PASSWORD = _DEVICE_ID
-        os.putenv("AP_SSID", AP_SSID)
-        os.putenv("AP_PASSWORD", _DEVICE_ID)
+        env.putenv("AP_SSID", AP_SSID)
+        env.putenv("AP_PASSWORD", _DEVICE_ID)
         _logger.debug("USING DEFAULT AP_SSID & AP_PASSWORD")
 
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)

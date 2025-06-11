@@ -9,7 +9,6 @@ from mpremote.transport_serial import SerialTransport
 from rich.console import Console
 from serial.tools import list_ports
 
-
 _console = Console()
 
 if __name__ == "__main__":

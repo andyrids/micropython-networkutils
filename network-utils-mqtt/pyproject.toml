@@ -1,0 +1,32 @@
+[project]
+name = "network-utils-mqtt"
+description = "Micropython network interface utility package."
+authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
+maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
+version = "0.0.1"
+requires-python = ">=3.10"
+classifiers=[
+    # 3 - Alpha | 4 - Beta | 5 - Production/Stable
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPL-3.0-or-later)",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    # Python versions
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: MicroPython",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Embedded Systems",
+]
+keywords = ["micropython", "package", "microcontroller", "network"]
+dependencies = ["network-utils"]
+
+[tool.uv.sources]
+network-utils = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

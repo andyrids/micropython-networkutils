@@ -178,6 +178,3 @@ class TestNetworkUtils(unittest.TestCase):
         WLAN = MockWLAN(MockWLAN.IF_AP)
         self.assertTrue(connection_issue(WLAN, MockWLAN.IF_AP))
 
-
-if __name__ == "__main__":
-    unittest.main()

@@ -6,6 +6,7 @@ requires-python = ">=3.10"
 members = [
     "micropython-network-utils",
     "network-utils",
+    "network-utils-mqtt",
 ]
 
 [[package]]
@@ -244,6 +245,26 @@ wheels = [
 name = "network-utils"
 version = "0.0.1"
 source = { editable = "network-utils" }
+
+[package.optional-dependencies]
+mqtt = [
+    { name = "network-utils-mqtt" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "network-utils-mqtt", marker = "extra == 'mqtt'", editable = "network-utils-mqtt" }]
+provides-extras = ["mqtt"]
+
+[[package]]
+name = "network-utils-mqtt"
+version = "0.0.1"
+source = { editable = "network-utils-mqtt" }
+dependencies = [
+    { name = "network-utils" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "network-utils", editable = "network-utils" }]
 
 [[package]]
 name = "packaging"

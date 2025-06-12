@@ -7,8 +7,4 @@
         "${command:python.interpreterPath}/../lib/python*/site-packages",
         "typings"
     ],
-    "cSpell.words": [
-        "isauth",
-        "pimoroni"
-    ],
 }

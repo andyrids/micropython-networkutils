@@ -65,14 +65,13 @@ import binascii
 import logging
 import machine
 import network
-import os
 import sys
 from time import sleep
 from typing import Optional, Union
 
 # optional `network-utils-*` extension dependencies
 try:
-    from .mqtt import *
+    from .mqtt import mqtt_fn
 except ImportError:
     pass
 

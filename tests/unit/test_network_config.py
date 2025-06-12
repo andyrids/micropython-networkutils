@@ -1,32 +1,30 @@
-from binascii import unhexlify
-from typing import Callable
 import pytest
 from pytest_mock import MockerFixture
-# import network_utils
-
-@pytest.fixture(autouse=True)
-def patch_micropython_modules(mocker: MockerFixture):
-    # patch network.WLAN and network constants
-    mocker.patch.dict('sys.modules', {
-        "network_utils.network": mocker.MagicMock(),
-        "network_utils.machine": mocker.MagicMock(),
-        "network": mocker.MagicMock(),
-        "machine": mocker.MagicMock(),
-    })
-
-    mocker.patch("machine.unique_id", return_value=unhexlify("E66164084373532B"))
+from unittest.mock import MagicMock
 
 
-def test_networkenv_singleton(patch_micropython_modules: Callable):
+def test_networkenv_singleton():
     """Test NetworkEnv singleton."""
-    from network_utils import NetworkEnv
+    from network_utils.interface import NetworkEnv
+    NetworkEnv._instance = None
+    NetworkEnv._env = {}
     assert NetworkEnv() is NetworkEnv()
 
 
-def test_networkenv_getenv_putenv(patch_micropython_modules: Callable):
+def test_networkenv_getenv_putenv(mocker, network_env_instance):
     """Test getting & setting network environment variables."""
-    from network_utils import NetworkEnv
-    env = NetworkEnv()
+    from network_utils.interface import NetworkEnv
+    env = network_env_instance
+
     env.putenv("FOO", "BAR")
     assert env.getenv("FOO") == "BAR"
     assert env.getenv("NOT_SET") is None
+
+    env.putenv("TEST_INT", 123)
+    assert env.getenv("TEST_INT") == "123"
+
+    env.putenv("TEST_FLOAT", 45.6)
+    assert env.getenv("TEST_FLOAT") == "45.6"
+
+    env.putenv("EMPTY_STR", "")
+    assert env.getenv("EMPTY_STR") is None

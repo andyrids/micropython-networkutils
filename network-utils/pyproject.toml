@@ -9,7 +9,7 @@ classifiers=[
     # 3 - Alpha | 4 - Beta | 5 - Production/Stable
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPL-3.0-or-later)",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     # Python versions
@@ -24,6 +24,15 @@ classifiers=[
 keywords = ["micropython", "package", "microcontroller", "network"]
 dependencies = []
 
+[project.optional-dependencies]
+mqtt = ["network-utils-mqtt"]
+
+[tool.uv.sources]
+network-utils-mqtt = { workspace = true }
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["network_utils"]

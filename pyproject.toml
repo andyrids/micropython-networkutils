@@ -24,7 +24,7 @@ classifiers=[
     "Topic :: Software Development :: Embedded Systems",
 ]
 keywords = ["micropython", "package", "microcontroller", "network"]
-dependencies = []
+#dependencies = ["network-utils", "network-utils-mqtt"]
 
 [dependency-groups]
 dev = [
@@ -46,10 +46,7 @@ network-utils = { workspace = true }
 network-utils-mqtt = { workspace = true }
 
 [tool.uv.workspace]
-members = [
-    "network-utils",
-    #"network-utils-mqtt"
-]
+members = ["network-utils", "network-utils-mqtt"]
 
 [tool.ruff]
 exclude = ["lib", "env"]

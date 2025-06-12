@@ -9,3 +9,6 @@ License: GNU General Public License v3 or later.
 
 Copyright (C): 2025.
 """
+
+def mqtt_fn() -> None:
+    pass

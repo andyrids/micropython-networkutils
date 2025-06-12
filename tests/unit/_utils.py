@@ -5,7 +5,7 @@ import sys
 from typing import Any, Optional, Union
 
 import unittest
-from network_utils import NetworkEnv, connection_issue
+from network_utils.interface import NetworkEnv, connection_issue
 
 
 class MockWLAN:
@@ -155,16 +155,6 @@ class TestNetworkUtils(unittest.TestCase):
             getattr(sys.implementation, "name", None), "micropython", msg
         )
 
-    def test_networkenv_singleton(self) -> None:
-        """Test NetworkEnv singleton."""
-        self.assertIs(NetworkEnv(), NetworkEnv())
-
-    def test_networkenv_getenv_putenv(self) -> None:
-        """Test getting & setting network environment variables."""
-        env = NetworkEnv()
-        env.putenv("FOO", "BAR")
-        self.assertEqual(env.getenv("FOO"), "BAR")
-        self.assertIsNone(env.getenv("NOT_SET"))
 
     def test_connection_issue_sta(self) -> None:
         """Test connection issue in STA mode."""

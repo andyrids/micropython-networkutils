@@ -42,7 +42,7 @@ uv sync
 
 ## Activate Virtual Environment
 
-Activate the virtual environment to make use of `mpremote`.
+Activate the virtual environment:
 
 ```sh
 . .venv/bin/activate
@@ -50,31 +50,8 @@ Activate the virtual environment to make use of `mpremote`.
 
 ## Running Unit Tests
 
-Test files are found within each package & extension Package root directory, e.g. `/network-utils/test_utils.py`. The relevant package or extension package should be installed on the device:
+Unit test files are found within `tests/unit` directory. These tests can be run with `pytest`, with the following command:
 
 ```sh
-mpremote mip install network-utils/package.json
-```
-
-We also need to install the MicroPython `unittest` package:
-
-```sh
-mpremote mip install unittest
-```
-
-With dependencies installed, run the relevant test file on the device:
-
-```sh
-mpremote run network-utils/test_utils.py
-```
-
-You should see output like below:
-
-```sh
-test_system_micropython (__main__.TestNetworkUtils) ... ok
-test_networkenv_singleton (__main__.TestNetworkUtils) ... ok
-test_networkenv_getenv_putenv (__main__.TestNetworkUtils) ... ok
-test_connection_issue_sta (__main__.TestNetworkUtils) ... ok
-test_connection_issue_ap (__main__.TestNetworkUtils) ... ok
-----------------------------------------------------------------------
+python -m pytest
 ```

@@ -1,4 +1,4 @@
-# MicroPython Package Repository - `network-utils`
+# MicroPython Package Repository - `networkutils`
 
 NOTE: The main repo is @ [GitLab](https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils) and is mirrored @ [GitHub](https://github.com/andyrids/micropython-networkutils).
 

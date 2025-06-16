@@ -69,11 +69,6 @@ import sys
 from time import sleep
 from typing import Optional, Union
 
-# optional `network-utils-*` extension dependencies
-try:
-    from .mqtt import mqtt_fn
-except ImportError:
-    pass
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
 
@@ -83,12 +78,6 @@ _stream_handler.setFormatter(_formatter)
 _logger = logging.getLogger(__name__)
 _logger.addHandler(_stream_handler)
 _logger.setLevel(logging.ERROR)
-
-
-class CertificateNotFound(Exception):
-    """SSL context certificate not found."""
-
-    pass
 
 
 class NetworkEnv:

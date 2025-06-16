@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 def test_networkenv_singleton():
     """Test NetworkEnv singleton."""
-    from network_utils.interface import NetworkEnv
+    from networkutils.core import NetworkEnv
     NetworkEnv._instance = None
     NetworkEnv._env = {}
     assert NetworkEnv() is NetworkEnv()
@@ -13,7 +13,7 @@ def test_networkenv_singleton():
 
 def test_networkenv_getenv_putenv(mocker, network_env_instance):
     """Test getting & setting network environment variables."""
-    from network_utils.interface import NetworkEnv
+    from networkutils.core import NetworkEnv
     env = network_env_instance
 
     env.putenv("FOO", "BAR")

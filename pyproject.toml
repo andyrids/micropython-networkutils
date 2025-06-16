@@ -1,5 +1,5 @@
 [project]
-name = "micropython-network-utils"
+name = "micropython-networkutils"
 description = "Micropython network interface utility package."
 authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
@@ -24,7 +24,10 @@ classifiers=[
     "Topic :: Software Development :: Embedded Systems",
 ]
 keywords = ["micropython", "package", "microcontroller", "network"]
-#dependencies = ["network-utils", "network-utils-mqtt"]
+dependencies = []
+
+[project.optional-dependencies]
+mqtt = ["networkutils-mqtt"]
 
 [dependency-groups]
 dev = [
@@ -33,20 +36,20 @@ dev = [
     "micropython-stdlib-stubs>=1.25.0",
     "mpremote>=1.25.0",
     "pytest>=8.4.0",
+    "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
     "ruff>=0.11.5",
 ]
 
 [project.urls]
-Repository = "https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils"
-Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/issues"
+Repository = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils"
+Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils/-/issues"
 
 [tool.uv.sources]
-network-utils = { workspace = true }
-network-utils-mqtt = { workspace = true }
+networkutils-mqtt = { workspace = true }
 
 [tool.uv.workspace]
-members = ["network-utils", "network-utils-mqtt"]
+members = ["networkutils-mqtt"]
 
 [tool.ruff]
 exclude = ["lib", "env"]
@@ -107,5 +110,8 @@ replace = 'version="{new_version}"'
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.sdist]
+packages = ["networkutils/networkutils"]
+
 [tool.hatch.build.targets.wheel]
-packages = ["network-utils/network_utils"]
+packages = ["networkutils/networkutils/"]

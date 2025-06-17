@@ -26,6 +26,7 @@ classifiers=[
 keywords = ["micropython", "package", "microcontroller", "network"]
 dependencies = []
 
+# this is a uv workspace package
 [project.optional-dependencies]
 mqtt = ["networkutils-mqtt"]
 
@@ -45,9 +46,11 @@ dev = [
 Repository = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils"
 Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils/-/issues"
 
+# enables the `mqtt` optional dependency with `networkutils-mqtt` as a uv workspace
 [tool.uv.sources]
 networkutils-mqtt = { workspace = true }
 
+# all workspace packages go here
 [tool.uv.workspace]
 members = ["networkutils-mqtt"]
 
@@ -110,6 +113,9 @@ replace = 'version="{new_version}"'
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# `packages` causes DIR collapse i.e. `networkutils/networkutils` -> `networkutils` and
+# `only-include` set to `networkutils` in the extension packages' `pyproject.toml`
+# files, enables a `networkutils` namespace and therefore a namespace package installation.
 [tool.hatch.build.targets.sdist]
 packages = ["networkutils/networkutils"]
 

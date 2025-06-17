@@ -17,4 +17,5 @@ class CertificateNotFound(Exception):
 
 
 def mqtt_dummy_function() -> None:
+    """Placeholder function to test namespace package installation."""
     pass

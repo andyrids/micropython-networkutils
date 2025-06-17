@@ -228,7 +228,7 @@ def connect_interface(WLAN: network.WLAN) -> None:
 
         networks = {name.decode() for name, *_ in set(WLAN.scan()) if name}
         if WLAN_SSID not in networks:
-            _logger.warning(f"SSID '{WLAN_SSID}' NOT AVAILABLE")
+            _logger.error(f"SSID '{WLAN_SSID}' NOT AVAILABLE")
             _logger.debug(f"AVAILABLE NETWORKS: {networks}")
             raise WLANConnectionError
 
@@ -241,7 +241,7 @@ def connect_interface(WLAN: network.WLAN) -> None:
         WLAN.connect(WLAN_SSID, WLAN_PASSWORD)
     # if WLAN is not in STA mode
     except (OSError, TypeError) as e:
-        _logger.error(f"TypeError: {e}")
+        _logger.debug(f"TypeError: {e}")
         _logger.error(f"WLAN CONNECT ERROR - SSID {WLAN_SSID}")
         raise WLANConnectionError from e
     try:  # 30 second timeout

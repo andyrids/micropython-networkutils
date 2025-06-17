@@ -1,4 +1,13 @@
+"""Pytest `conftest` with fixtures & mocks for MicroPython modules.
 
+Mocks include MicroPython stdlib modules; `machine`, `network` & `time`.
+
+Author: Andrew Ridyard.
+
+License: GNU General Public License v3 or later.
+
+Copyright (C): 2025.
+"""
 import logging
 import sys
 from binascii import hexlify, unhexlify
@@ -10,6 +19,7 @@ from pytest_mock import MockerFixture
 
 
 class MockWLAN:
+    """A mock class for `network.WLAN`"""
     IF_STA = 0
     IF_AP = 1
     PM_NONE = 0
@@ -168,8 +178,9 @@ def mock_network_module(mocker: MockerFixture) -> MagicMock:
     mock_network.STAT_IDLE = 0
     mock_network.STAT_CONNECTING = 1
     mock_network.STAT_GOT_IP = 3
-
-    mock_network.WLAN.return_value = mocker.MagicMock(spec=MockWLAN, name="WLAN_instance")
+    mock_network.WLAN.return_value = mocker.MagicMock(
+        spec=MockWLAN, name="WLAN_instance"
+    )
     mock_network.WLAN.PM_NONE = MockWLAN.PM_NONE
     mock_network.WLAN.PM_PERFORMANCE = MockWLAN.PM_PERFORMANCE
     mock_network.WLAN.PM_POWERSAVE = MockWLAN.PM_POWERSAVE
@@ -182,14 +193,33 @@ def mock_time_module(mocker: MockerFixture) -> MagicMock:
     """Mocks the time module."""
     mock_time = mocker.MagicMock(name="time_module")
     mock_time.sleep = mocker.MagicMock(name="sleep_func")
-    # time.time() can be configured with side_effect in tests
+    # `time.time` can be configured with side_effect in tests
     mock_time.time = mocker.MagicMock(name="time_func", return_value=0)
     return mock_time
 
 
 @pytest.fixture
+def mock_logging_module(mocker: MockerFixture) -> MagicMock:
+    """Mocks the logging module."""
+    mock_logging = mocker.MagicMock(name="logging_module")
+    mock_logger_instance = mocker.MagicMock(name="logger_instance")
+    mock_logging.getLogger.return_value = mock_logger_instance
+    mock_logging.Formatter = mocker.MagicMock(name="Formatter_class")
+    mock_logging.StreamHandler = mocker.MagicMock(name="StreamHandler_class")
+
+    # Add logging level constants
+    mock_logging.DEBUG = logging.DEBUG
+    mock_logging.INFO = logging.INFO
+    mock_logging.WARNING = logging.WARNING
+    mock_logging.ERROR = logging.ERROR
+    mock_logging.CRITICAL = logging.CRITICAL
+    return mock_logging
+
+
+@pytest.fixture
 def mock_wlan_instance(mock_network_module: MagicMock) -> MagicMock:
-    # instance returned by network.WLAN()
+    """Mocks a `network.WLAN` instance."""
+    # instance returned by `network.WLAN`
     return mock_network_module.WLAN.return_value
 
 
@@ -201,7 +231,7 @@ def patch_micropython_stdlib(
     mock_time_module: MagicMock,
 ) -> None:
     """Patch `sys.modules` with mocked MicroPython stdlib.
-    
+
     This fixture patches `sys.modules` for the entire test session and
     ensures any modules imported by `network_utils.interface` are replaced
     with these mocks.
@@ -210,6 +240,7 @@ def patch_micropython_stdlib(
         "machine": mock_machine_module,
         "network": mock_network_module,
         "time": mock_time_module,
+        #"logging": mock_logging_module
     }
     mocker.patch.dict("sys.modules", modules)
 

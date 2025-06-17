@@ -1,3 +1,14 @@
+"""Integration tests using `mpremote`.
+
+NOTE: TODO.
+
+Author: Andrew Ridyard.
+
+License: GNU General Public License v3 or later.
+
+Copyright (C): 2025.
+"""
+
 import time
 from ast import literal_eval
 
@@ -15,7 +26,7 @@ if __name__ == "__main__":
     # VID: 2e8a PID: 0005
     #print(*map(str, (p.device for p in list_ports.comports())))
 
-    try: 
+    try:
         # auto-detect & auto-connect to the first available USB serial port
         for p in sorted(list_ports.comports()):
             if p.vid and p.pid:
@@ -38,7 +49,7 @@ if __name__ == "__main__":
         try:
             mip._install_package(
                 serial_transport,
-                "github:andyrids/micropython-network-utils/network-utils/",
+                "github:andyrids/micropython-networkutils/networkutils/",
                 "https://micropython.org/pi/v2",
                 "lib",
                 "main",

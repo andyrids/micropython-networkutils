@@ -65,16 +65,10 @@ import binascii
 import logging
 import machine
 import network
-import os
 import sys
 from time import sleep
 from typing import Optional, Union
 
-# optional `network-utils-*` extension dependencies
-try:
-    from .mqtt import *
-except ImportError:
-    pass
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
 
@@ -84,12 +78,6 @@ _stream_handler.setFormatter(_formatter)
 _logger = logging.getLogger(__name__)
 _logger.addHandler(_stream_handler)
 _logger.setLevel(logging.ERROR)
-
-
-class CertificateNotFound(Exception):
-    """SSL context certificate not found."""
-
-    pass
 
 
 class NetworkEnv:
@@ -176,8 +164,8 @@ def access_point_reset(WLAN: network.WLAN) -> tuple[network.WLAN, int]:
         _logger.debug("ENV $AP_SSID & $AP_PASSWORD NOT SET")
         AP_SSID = f"DEVICE-{_DEVICE_ID}"
         AP_PASSWORD = _DEVICE_ID
-        os.putenv("AP_SSID", AP_SSID)
-        os.putenv("AP_PASSWORD", _DEVICE_ID)
+        env.putenv("AP_SSID", AP_SSID)
+        env.putenv("AP_PASSWORD", _DEVICE_ID)
         _logger.debug("USING DEFAULT AP_SSID & AP_PASSWORD")
 
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)
@@ -240,7 +228,7 @@ def connect_interface(WLAN: network.WLAN) -> None:
 
         networks = {name.decode() for name, *_ in set(WLAN.scan()) if name}
         if WLAN_SSID not in networks:
-            _logger.warning(f"SSID '{WLAN_SSID}' NOT AVAILABLE")
+            _logger.error(f"SSID '{WLAN_SSID}' NOT AVAILABLE")
             _logger.debug(f"AVAILABLE NETWORKS: {networks}")
             raise WLANConnectionError
 
@@ -253,7 +241,7 @@ def connect_interface(WLAN: network.WLAN) -> None:
         WLAN.connect(WLAN_SSID, WLAN_PASSWORD)
     # if WLAN is not in STA mode
     except (OSError, TypeError) as e:
-        _logger.error(f"TypeError: {e}")
+        _logger.debug(f"TypeError: {e}")
         _logger.error(f"WLAN CONNECT ERROR - SSID {WLAN_SSID}")
         raise WLANConnectionError from e
     try:  # 30 second timeout

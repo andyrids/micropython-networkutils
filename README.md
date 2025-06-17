@@ -1,8 +1,8 @@
-# MicroPython Package Repository - `network-utils`
+# MicroPython Package Repository - `networkutils`
 
-NOTE: The main repo is @ [GitLab](https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils) and is mirrored @ [GitHub](https://github.com/andyrids/micropython-network-utils).
+NOTE: The main repo is @ [GitLab](https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils) and is mirrored @ [GitHub](https://github.com/andyrids/micropython-networkutils).
 
-This is a repository for a MicroPython package named `network-utils`, which contains utility functions related to interfaces exposed by the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library and external packages on the [`micropython-lib`](https://github.com/micropython/micropython-lib) repository.
+This is a repository for a MicroPython package named `networkutils`, which contains utility functions related to interfaces exposed by the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library and external packages on the [`micropython-lib`](https://github.com/micropython/micropython-lib) repository.
 
 1. Uses network environment variable class for credential configuration in client (STA) & access point (AP) modes.
 2. Attempts WiFi connection in STA mode; if unsuccessful, resets interface to AP with default or environment-provided credentials.
@@ -20,28 +20,29 @@ flowchart TD
     C --> G[Return AP interface]
 ```
 
+This package facilitates MicroPython development in VSCode through the settings in `.vscode` and the [`micropython-stdlib-stubs`](https://github.com/Josverl/micropython-stubs) project dependency. Type hints on MicroPython code are enabled through the following files, which are included as a package dependency and installed to the device `lib/` directory:
+
 * `typing`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing.py)
 * `typing_extensions`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing_extensions.py)
 
-This package follows the ***extension package*** concept outlined in the [micropython-lib](https://github.com/micropython/micropython-lib) repository. Extension packages will extend the functionality of the `network-utils` package, by adding additional files to the same package directory. These packages will follow the naming convention `network-utils-*` and will install extra modules to a directory named `network_utils` on the device.
+In a MicroPython context, This package follows the ***extension package*** concept outlined in the [micropython-lib](https://github.com/micropython/micropython-lib) repository. Extension packages will extend the functionality of the `networkutils` package, by adding additional files to the same package directory. These packages will follow the naming convention `networkutils-*` and will install extra modules to the directory `lib/networkutils` on the device.
 
-e.g. `network-utils` would install `__init__.py` file on the device as `lib/network_utils/__init__.py` and the `network-utils-mqtt` extension package would install `mqtt.py` as `lib/network_utils/mqtt.py`.
+e.g. `networkutils` would install the `core.py` file on the device as `lib/networkutils/core.py` and the `networkutils-mqtt` extension package would install `mqtt.py` as `lib/networkutils/mqtt.py`.
 
-Installation of `network-utils` will only install files that are part of the `network-utils` package whereas installation of `network-utils-mqtt` will install the package extension files along with the `network-utils` package it extends.
+Installation of `networkutils` will only install files that are part of the `networkutils` package, whereas installation of `networkutils-mqtt` will install the package extension files along with the `networkutils` package it extends.
 
 ```text
-micropython-network-utils
-├── network-utils          <-- network-utils package
+micropython-networkutils
+├── networkutils           <-- Core `networkutils` package
 │   ├── manifest.py
-│   ├── network_utils      <-- device installation dir i.e. `lib/network_utils/`
-│   │   └── __init__.py    <-- package module
-│   └── package.json       <-- package URLs & dependencies 
-├── network-utils-mqtt     <-- Extension package for `network-utils`
+│   ├── networkutils       <-- Device installation dir i.e. `lib/networkutils/`
+│   │   └── core.py        <-- Core package module
+│   └── package.json       <-- Package URLs & dependencies (for `mip install`)
+├── networkutils-mqtt      <-- Extension package for `networkutils`
 │   ├── manifest.py
-│   ├── network_utils      <-- device installation dir i.e. `lib/network_utils/`
-│   │   └── mqtt.py        <-- extension package module
-│   ├── package.json       <-- extension package URLs & dependencies (includes `network-utils`)
-│   └── test_wlan.py       <-- extension package unit tests
+│   ├── networkutils       <-- Device installation dir i.e. `lib/networkutils/`
+│   │   └── mqtt.py        <-- Extension package module
+│   └── package.json       <-- Extension package URLs & dependencies (includes core `networkutils`)
 ```
 
 ## Cloning The Repository
@@ -58,7 +59,7 @@ uv sync
 
 The following commands will install the `network-utils` package based on the URLs and dependencies listed in the `network-utils/package.json`.
 
-Note that because we have repositories within sub-groups, the usual installation URLs such as `gitlab:org/repo-name@main` or `gitlab:org/repo-name/dir/__init__.py` will not work. The `mip` package installer always assumes that the first URL component is the org and the second is the repository slug, resulting incorrect parsed URLs for package download/installation (for these nested repositories).
+Note that because we have repositories within sub-groups, the usual installation URLs such as `gitlab:org/repo-name@main` or `gitlab:org/repo-name/dir/__init__.py` will not work. The `mip` package installer always assumes that the first URL component is the org and the second is the repository slug, resulting incorrect parsed URLs for package download/installation (for these nested repositories). This issue is mitigated by using raw URLs in the `package.json` files and you can use the installation URLs for the GitHub mirror repo i.e. github:andyrids/micropython-network-utils/network-utils/.
 
 You can format and reset your device with `mpremote` using the following command:
 
@@ -68,10 +69,16 @@ mpremote exec --no-follow "import os, machine, rp2; os.umount('/'); bdev = rp2.F
 
 ### mpremote
 
-The following commands will install the `network-utils` package on your device using the `mpremote` Python package.
+The following commands will install the `network-utils` package on your device using the `mpremote` Python package. Note that the `package.json` is optional as `mip` will add it, if the URL ends without a `.mpy`, `.py` or `.json` extension.
 
 ```sh
 mpremote mip install https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json
+```
+
+The following command will install the package using the mirrored repository on GitHub:
+
+```sh
+mpremote mip install github:andyrids/micropython-network-utils/network-utils/
 ```
 
 ### REPL
@@ -81,6 +88,13 @@ The following code will import `mip` and install the `network-utils` package fro
 ```python
 >>> import mip
 >>> mip.install("https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/raw/HEAD/network-utils/package.json")
+```
+
+GitHub mirrored repository alternate installation:
+
+```python
+>>> import mip
+>>> mip.install("github:andyrids/micropython-network-utils/network-utils/")
 ```
 
 ## Example Usage

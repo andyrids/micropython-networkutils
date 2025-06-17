@@ -1,17 +1,17 @@
 [project]
-name = "micropython-network-utils"
+name = "micropython-networkutils"
 description = "Micropython network interface utility package."
 authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 version = "0.0.1"
-license = {file = "LICENSE"}
+license = {file = "LICENSE.md"}
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
 classifiers=[
     # 3 - Alpha | 4 - Beta | 5 - Production/Stable
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPL-3.0-or-later)",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     # Python versions
@@ -24,22 +24,35 @@ classifiers=[
     "Topic :: Software Development :: Embedded Systems",
 ]
 keywords = ["micropython", "package", "microcontroller", "network"]
-dependencies = [
-    "micropython-stdlib-stubs",
-    "micropython-rp2-rpi_pico_w-stubs",
-]
+dependencies = []
+
+# this is a uv workspace package
+[project.optional-dependencies]
+mqtt = ["networkutils-mqtt"]
 
 [dependency-groups]
 dev = [
     "bump-my-version>=1.1.2",
+    "micropython-rp2-rpi-pico-w-stubs>=1.25.0.post3",
+    "micropython-stdlib-stubs>=1.25.0",
     "mpremote>=1.25.0",
+    "pytest>=8.4.0",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
     "ruff>=0.11.5",
 ]
 
 [project.urls]
-Repository = "https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils"
-Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-network-utils/-/issues"
+Repository = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils"
+Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils/-/issues"
 
+# enables the `mqtt` optional dependency with `networkutils-mqtt` as a uv workspace
+[tool.uv.sources]
+networkutils-mqtt = { workspace = true }
+
+# all workspace packages go here
+[tool.uv.workspace]
+members = ["networkutils-mqtt"]
 
 [tool.ruff]
 exclude = ["lib", "env"]
@@ -68,9 +81,6 @@ convention = "google"
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
 
-[tool.uv.sources]
-# picoproject = { git = "https://github.com/andyrids/picoproject" }
-
 [tool.bumpversion]
 current_version = "0.0.1"
 commit = true
@@ -98,3 +108,16 @@ replace = '"version": "{new_version}"'
 filename = "network-utils/manifest.py"
 search = 'version="{current_version}"'
 replace = 'version="{new_version}"'
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# `packages` causes DIR collapse i.e. `networkutils/networkutils` -> `networkutils` and
+# `only-include` set to `networkutils` in the extension packages' `pyproject.toml`
+# files, enables a `networkutils` namespace and therefore a namespace package installation.
+[tool.hatch.build.targets.sdist]
+packages = ["networkutils/networkutils"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["networkutils/networkutils/"]

@@ -4,3 +4,4 @@ __pycache__
 */dist/
 *.org
 *.1
+.coverage

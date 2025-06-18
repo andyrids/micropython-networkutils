@@ -52,43 +52,39 @@ pytest --cov=networkutils/networkutils -v
 
 Having experimented with `mpremote`, I have found a way to install the `networkutils` package and connect to a microcontroller in a script context, rather than through the CLI. Through a programmatic connection to the REPL, it is possible to send commands that utilise and test the package on the device, returning any output as a string for assertions within pytest functions.
 
+A `serial_connection` fixture with 'module' scope ensures all tests use the same `SerialTransport` instance, which is used to send commands over the raw REPL. If the fixture raises an exception or all tests have skipped/failed/completed, cleanup and teardown of the connection is carried out by the fixture.
+
 ```mermaid
 flowchart TD
-    A([Start Integration Test])
-    B([Detect USB Serial Ports])
-    C{Found Device?}
-    D([Connect to Serial Device])
-    E{In Raw REPL?}
-    F([Exit Raw REPL])
-    G([Enter Raw REPL])
-    H([Wait 1s])
-    I([Print REPL Status])
-    J([Install networkutils via mip])
-    K{Install Success?}
-    Y([Log: Installation Failed])
-    L([Run Command])
-    M([Test Output])
-    N([End Test])
-    O([Exit: No Devices Found])
-    P([Cleanup: Exit Raw REPL if needed,<br/>Close Serial])
+    A([Run Pytest])
+    B([serial_connection fixture])
+    C{SerialTransport}
+    D([Assert open connection])
+    E{Connected}
+    F([Yield SerialTransport])
+    G([test_enter_raw_repl])
+    H([test_package_installation])
+    I([test_package_import])
+    J([test_network_config])
+    K{Results}
+    L([Log output])
+    M([Test Summary])
+    N([serial_connection fixture<br/>cleanup & teardown])
 
     A --> B
     B --> C
-    C -- No --> O
+    C -- No --> N
     C -- Yes --> D
     D --> E
-    E -- Yes --> F
-    E -- No --> G
+    E -- True --> F
+    E -- False --> N
     F --> G
     G --> H
     H --> I
     I --> J
     J --> K
-    K -- No --> Y
-    K -- Yes --> L
-    Y --> O
+    K -- Fail --> L
+    K -- Pass --> M
     L --> M
     M --> N
-    N --> P
-    O --> P
 ```

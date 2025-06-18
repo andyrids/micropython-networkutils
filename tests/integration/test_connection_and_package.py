@@ -37,7 +37,7 @@ from serial.tools import list_ports
 
 
 _console = Console()
-_rich_handler = RichHandler(console=_console)
+_rich_handler = RichHandler(console=_console, rich_tracebacks=True)
 _logger = logging.getLogger("integration")
 _logger.handlers.clear()
 _logger.setLevel(logging.DEBUG)
@@ -68,7 +68,7 @@ def serial_connection() -> Generator[SerialTransport]:
         assert serial_transport.serial.is_open
         yield serial_transport
     finally:
-        _console.print("serial_connection: cleanup & teardown")
+        _console.print("Fixture `serial_connection`: cleanup & teardown")
         if serial_transport:
             if serial_transport.in_raw_repl:
                 serial_transport.exit_raw_repl()

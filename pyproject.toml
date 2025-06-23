@@ -3,7 +3,7 @@ name = "micropython-networkutils"
 description = "Micropython network interface utility package."
 authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
-version = "0.0.1"
+dynamic = ["version"]
 license = {file = "LICENSE.md"}
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
@@ -85,7 +85,7 @@ convention = "google"
 addopts = ["--import-mode=importlib"]
 
 [tool.bumpversion]
-current_version = "0.0.1"
+current_version = "0.1.0"
 commit = true
 commit_args = "--no-verify"
 tag = true
@@ -94,11 +94,6 @@ tag_message = "chore: tag version update {current_version} -> {new_version}."
 allow_dirty = false
 message = "chore: version update {current_version} -> {new_version}."
 
-# update pyproject.toml version
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
 
 # update package.json version
 [[tool.bumpversion.files]]
@@ -113,7 +108,7 @@ search = 'version="{current_version}"'
 replace = 'version="{new_version}"'
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
@@ -136,3 +131,6 @@ packages = ["networkutils/networkutils"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["networkutils/networkutils/"]
+
+[tool.hatch.version]
+source = "vcs"

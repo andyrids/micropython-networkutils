@@ -25,6 +25,7 @@ import logging
 import time
 from ast import literal_eval
 from typing import Generator
+from unittest.mock import MagicMock
 
 import pytest
 from mpremote import mip
@@ -76,11 +77,19 @@ def serial_connection() -> Generator[SerialTransport]:
             assert serial_transport.in_raw_repl is False
             assert serial_transport.serial.is_open is False
 
+@pytest.fixture(autouse=True)
+def skip_if_no_serial_connection(
+        serial_connection: SerialTransport
+    ) -> None:
+    """Skip tests if `SerialTransport` connection failed."""
+    if serial_connection is None:
+        pytest.skip("No `SerialTransport` connection.")
+
 
 def test_enter_raw_repl(serial_connection: SerialTransport) -> None:
     """"""
     assert serial_connection.serial.is_open
-    serial_connection.enter_raw_repl(soft_reset=False)
+    serial_connection.enter_raw_repl(soft_reset=True)
     time.sleep(1)
     assert serial_connection.in_raw_repl
 
@@ -122,6 +131,7 @@ def test_package_import(
     with caplog.at_level(logging.DEBUG, logger="integration"):
         serial_connection.exec("from networkutils.core import _DEVICE_ID")
         serial_connection.exec("from networkutils.core import NetworkEnv")
+        serial_connection.exec("from networkutils.core import get_network_interface")
     
 def test_network_config(
         serial_connection: SerialTransport,
@@ -139,3 +149,38 @@ def test_network_config(
 
         out = serial_connection.exec("print(repr(env._env))")
         assert literal_eval(out.decode().strip()) == ENV
+
+
+def test_network_interface_ap(
+        serial_connection: SerialTransport,
+        caplog: pytest.LogCaptureFixture
+    ) -> None:
+    """"""
+    assert serial_connection.serial.is_open
+    assert serial_connection.in_raw_repl
+
+    with caplog.at_level(logging.DEBUG, logger="integration"):
+        # reset environment
+        ENV = {"WLAN_PASSWORD": None, "WLAN_SSID": None}
+        for k,v in ENV.items():
+            serial_connection.exec(f"env.putenv('{k}', {v})")
+        out = serial_connection.exec("print(repr(env._env))")
+        assert literal_eval(out.decode().strip()) == ENV
+
+        # WLAN_MODE should be WLAN.AP_IF (1)
+        serial_connection.exec(
+            "WLAN, WLAN_MODE = get_network_interface(debug=True)"
+        )
+
+        out = serial_connection.exec("print(WLAN_MODE)")
+        assert int(out.decode().strip()) == 1
+
+        out = serial_connection.exec("print(WLAN.active())")
+        assert literal_eval(out.decode().strip()) is True
+
+        out = serial_connection.exec("print(_DEVICE_ID)")
+        DEVICE_ID = out.decode().strip()
+
+        out = serial_connection.exec("print(WLAN.config('ssid'))")
+        assert out.decode().strip() == f"DEVICE-{DEVICE_ID}"
+

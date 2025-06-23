@@ -27,7 +27,7 @@ Activate the virtual environment:
 ├── tests                                      <-- Main test directory
 │   ├── integration                            <-- Integration tests
 │   │   ├── __init__.py
-│   │   └── main.py                            <-- WIP for integration tests
+│   │   └── test_connection_and_package.py     <-- WIP for integration tests
 │   ├── unit                                   <-- Unit tests
 │   │   ├── __init__.py
 │   │   ├── test_network_config.py             <-- Network configuration tests

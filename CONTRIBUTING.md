@@ -27,7 +27,7 @@ micropython-networkutils
 │   ├── networkutils       <-- Device installation dir i.e. `lib/networkutils/`
 │   │   └── mqtt.py        <-- Extension package module
 │   ├── package.json       <-- Extension package URLs & dependencies (includes core `networkutils`)
-│   └── pyproject.toml     <-- Extension package `pyproject.toml` enables uv workspace & namespace package
+│   └── pyproject.toml     <-- Extension package `pyproject.toml` enables uv workspace & namespace 
 ```
 
 In a standard Python context, this package is called `micropython-networkutils` and follows a Python [namespace](https://packaging.python.org/en/latest/guides/packaging-namespace-packages/) structure, with the shared namespace being `networkutils`. The aforementioned MicroPython ***extension packages*** in this context, are optional dependencies listed in the root `pyproject.toml.` For example, to install `networkutils` and `networkutils-mqtt`, you could pip install `micropython-networkutils[mqtt]`. This would enable imports like so:

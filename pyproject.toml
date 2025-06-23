@@ -28,14 +28,16 @@ dependencies = []
 
 # this is a uv workspace package
 [project.optional-dependencies]
-mqtt = ["networkutils-mqtt"]
+mqtt = ["micropython-networkutils-mqtt"]
 
 [dependency-groups]
 dev = [
     "bump-my-version>=1.1.2",
+    "hatch>=1.14.1",
     "micropython-rp2-rpi-pico-w-stubs>=1.25.0.post3",
     "micropython-stdlib-stubs>=1.25.0",
     "mpremote>=1.25.0",
+    "mpy-cross>=1.25.0,<1.26.0",
     "pytest>=8.4.0",
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
@@ -46,9 +48,10 @@ dev = [
 Repository = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils"
 Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils/-/issues"
 
+
 # enables the `mqtt` optional dependency with `networkutils-mqtt` as a uv workspace
 [tool.uv.sources]
-networkutils-mqtt = { workspace = true }
+micropython-networkutils-mqtt = { workspace = true }
 
 # all workspace packages go here
 [tool.uv.workspace]
@@ -113,6 +116,18 @@ replace = 'version="{new_version}"'
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+namespace-packages = ["networkutils"]
+
+#[tool.hatch.build.hooks.custom]
+#path = "hatch_mpy_compile.py"
+#include = ["*.py", "**/*.py"]
+#mpy_cross_args = ["-O2"]
+
+[tool.hatch.build.targets.sdist.hooks.custom]
+path = "hatch_mpy_compile.py"
+include = ["networkutils/*.py"]
+mpy_cross_args = ["-O2"]
 # `packages` causes DIR collapse i.e. `networkutils/networkutils` -> `networkutils` and
 # `only-include` set to `networkutils` in the extension packages' `pyproject.toml`
 # files, enables a `networkutils` namespace and therefore a namespace package installation.

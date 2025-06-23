@@ -1,5 +1,5 @@
 [project]
-name = "networkutils-mqtt"
+name = "micropython-networkutils-mqtt"
 description = "Micropython network interface utility package."
 authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
@@ -32,3 +32,6 @@ only-include = ["networkutils"]
 
 [tool.hatch.build.targets.wheel]
 only-include = ["networkutils"]
+
+[tool.hatch.build]
+namespace-packages = ["networkutils"]

@@ -111,18 +111,13 @@ replace = 'version="{new_version}"'
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build]
-namespace-packages = ["networkutils"]
-
-#[tool.hatch.build.hooks.custom]
-#path = "hatch_mpy_compile.py"
-#include = ["*.py", "**/*.py"]
-#mpy_cross_args = ["-O2"]
-
 [tool.hatch.build.targets.sdist.hooks.custom]
-path = "hatch_mpy_compile.py"
-include = ["networkutils/*.py"]
-mpy_cross_args = ["-O2"]
+# custom build hook configuration
+path = "scripts/build/cross_compile.py"
+# custom build hook options
+only-include = ["networkutils/networkutils"]
+compiler-options = ["-O2"]
+
 # `packages` causes DIR collapse i.e. `networkutils/networkutils` -> `networkutils` and
 # `only-include` set to `networkutils` in the extension packages' `pyproject.toml`
 # files, enables a `networkutils` namespace and therefore a namespace package installation.
@@ -130,7 +125,7 @@ mpy_cross_args = ["-O2"]
 packages = ["networkutils/networkutils"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["networkutils/networkutils/"]
+packages = ["networkutils/networkutils"]
 
 [tool.hatch.version]
 source = "vcs"

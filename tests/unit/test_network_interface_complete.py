@@ -10,6 +10,7 @@ License: GNU General Public License v3 or later.
 
 Copyright (C): 2025.
 """
+
 import logging
 from binascii import hexlify, unhexlify
 
@@ -20,10 +21,10 @@ from unittest.mock import MagicMock
 
 
 def test_device_id(
-        mocker: MockerFixture,
-        mock_machine_module: MagicMock,
-        mock_network_module: MagicMock
-    ) -> None:
+    mocker: MockerFixture,
+    mock_machine_module: MagicMock,
+    mock_network_module: MagicMock,
+) -> None:
     """"""
     mock_id = unhexlify("E66164084373532B")
     mock_machine_module.unique_id.return_value = mock_id
@@ -34,16 +35,17 @@ def test_device_id(
 
 
 def test_connection_issue(
-        mocker: MockerFixture, mock_network_module: MagicMock
-    ) -> None:
+    mocker: MockerFixture, mock_network_module: MagicMock
+) -> None:
     """Test connection_issue function."""
     from networkutils.core import connection_issue
+
     mock_wlan = mock_network_module.WLAN.return_value
     mock_wlan.IF_AP = 1
     mock_wlan.IF_STA = 0
 
     # scenario 1: AP mode
-    mock_wlan.isconnected.return_value = True # doesn't matter for AP mode
+    mock_wlan.isconnected.return_value = True  # doesn't matter for AP mode
     assert connection_issue(mock_wlan, mock_network_module.AP_IF) is True
     mock_wlan.isconnected.assert_not_called()
 
@@ -61,11 +63,12 @@ def test_connection_issue(
 
 
 def test_activate_interface_becomes_active(
-        mocker: MockerFixture,
-        mock_network_module: MagicMock,
-        mock_wlan_instance: MagicMock,
-        mock_time_module: MagicMock,
-        caplog: pytest.LogCaptureFixture) -> None:
+    mocker: MockerFixture,
+    mock_network_module: MagicMock,
+    mock_wlan_instance: MagicMock,
+    mock_time_module: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test activate_interface when wlan.active() becomes True (AP mode)."""
     from networkutils.core import activate_interface
 
@@ -82,14 +85,15 @@ def test_activate_interface_becomes_active(
 
 
 def test_activate_interface_timeout(
-        mocker: MockerFixture,
-        mock_network_module: MagicMock,
-        mock_wlan_instance: MagicMock,
-        mock_time_module: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    mocker: MockerFixture,
+    mock_network_module: MagicMock,
+    mock_wlan_instance: MagicMock,
+    mock_time_module: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test activate_interface timeout scenario."""
     from networkutils.core import activate_interface
+
     mock_wlan_instance.status.return_value = mock_network_module.STAT_IDLE
     mock_wlan_instance.active.return_value = False
 
@@ -102,13 +106,14 @@ def test_activate_interface_timeout(
 
 
 def test_deactivate_interface_becomes_inactive(
-        mock_network_module: MagicMock,
-        mock_wlan_instance: MagicMock,
-        mock_time_module: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    mock_network_module: MagicMock,
+    mock_wlan_instance: MagicMock,
+    mock_time_module: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test deactivate_interface when wlan.active() becomes False."""
     from networkutils.core import deactivate_interface
+
     mock_wlan_instance.active.side_effect = (None, True, False)
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
@@ -120,11 +125,11 @@ def test_deactivate_interface_becomes_inactive(
 
 
 def test_deactivate_interface_timeout(
-        mocker: MockerFixture,
-        mock_wlan_instance: MagicMock,
-        mock_time_module: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    mocker: MockerFixture,
+    mock_wlan_instance: MagicMock,
+    mock_time_module: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test deactivate_interface timeout scenario."""
     from networkutils.core import deactivate_interface
 
@@ -145,7 +150,7 @@ def test_connect_interface_success(
     mock_wlan_instance: MagicMock,
     mock_time_module: MagicMock,
     mock_network_module: MagicMock,
-    caplog: pytest.LogCaptureFixture
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test connect_interface successful connection."""
     from networkutils.core import connect_interface
@@ -178,10 +183,10 @@ def test_connect_interface_success(
 
 
 def test_connect_interface_ssid_not_set(
-        network_env_instance: "NetworkEnv", # type: ignore
-        mock_wlan_instance: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    network_env_instance: "NetworkEnv",  # type: ignore
+    mock_wlan_instance: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test connect_interface when WLAN_SSID is not set."""
     from networkutils.core import connect_interface, WLANConnectionError
 
@@ -193,10 +198,10 @@ def test_connect_interface_ssid_not_set(
 
 
 def test_connect_interface_ssid_not_found_in_scan(
-        network_env_instance: "NetworkEnv",
-        mock_wlan_instance: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    network_env_instance: "NetworkEnv",
+    mock_wlan_instance: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test connect_interface when WLAN_SSID is not found in scan results."""
     from networkutils.core import connect_interface, WLANConnectionError
 
@@ -215,10 +220,10 @@ def test_connect_interface_ssid_not_found_in_scan(
 
 
 def test_connect_interface_os_error(
-        network_env_instance: "NetworkEnv",
-        mock_wlan_instance: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    network_env_instance: "NetworkEnv",
+    mock_wlan_instance: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test connect_interface when wlan.connect() raises OSError."""
     from networkutils.core import connect_interface, WLANConnectionError
 
@@ -242,12 +247,12 @@ def test_connect_interface_os_error(
 
 
 def test_connect_interface_timeout(
-        network_env_instance: "NetworkEnv",
-        mock_wlan_instance: MagicMock,
-        mock_time_module: MagicMock,
-        mock_network_module: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    network_env_instance: "NetworkEnv",
+    mock_wlan_instance: MagicMock,
+    mock_time_module: MagicMock,
+    mock_network_module: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test connect_interface timeout during connection wait."""
     from networkutils.core import connect_interface, WLANTimeoutError
 
@@ -277,12 +282,12 @@ def test_connect_interface_timeout(
 
 
 def test_access_point_reset_env_vars_set(
-        mocker: MockerFixture,
-        network_env_instance: "NetworkEnv",
-        mock_wlan_instance: MagicMock,
-        mock_network_module: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    mocker: MockerFixture,
+    network_env_instance: "NetworkEnv",
+    mock_wlan_instance: MagicMock,
+    mock_network_module: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test `access_point_reset` when $AP_SSID & $AP_PASSWORD are set."""
     from networkutils.core import access_point_reset
 
@@ -320,17 +325,17 @@ def test_access_point_reset_env_vars_set(
 
 
 def test_access_point_reset_env_vars_not_set(
-        mocker: MockerFixture,
-        network_env_instance: "NetworkEnv",
-        mock_wlan_instance: MagicMock,
-        mock_network_module: MagicMock,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    mocker: MockerFixture,
+    network_env_instance: "NetworkEnv",
+    mock_wlan_instance: MagicMock,
+    mock_network_module: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test `access_point_reset` with default AP SSID & password."""
     from networkutils.core import access_point_reset, _DEVICE_ID
 
-    mock_deactivate = mocker.patch('networkutils.core.deactivate_interface')
-    mock_activate = mocker.patch('networkutils.core.activate_interface')
+    mock_deactivate = mocker.patch("networkutils.core.deactivate_interface")
+    mock_activate = mocker.patch("networkutils.core.activate_interface")
 
     # reset $AP_SSID & $AP_PASSWORD in env
     network_env_instance._env.pop("AP_SSID", None)

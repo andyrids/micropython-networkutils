@@ -501,7 +501,6 @@ wheels = [
 
 [[package]]
 name = "micropython-networkutils"
-version = "0.0.1"
 source = { editable = "." }
 
 [package.optional-dependencies]
@@ -543,7 +542,7 @@ dev = [
 
 [[package]]
 name = "micropython-networkutils-mqtt"
-version = "0.0.1"
+version = "0.1.0"
 source = { editable = "networkutils-mqtt" }
 
 [[package]]

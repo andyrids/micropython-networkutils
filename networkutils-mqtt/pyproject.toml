@@ -38,5 +38,4 @@ only-include = ["networkutils"]
 path = "../scripts/build/cross_compile.py"
 # custom build hook options
 only-include = ["networkutils"]
-source-root = "networkutils-mqtt"
 compiler-options = ["-O2"]

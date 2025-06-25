@@ -54,6 +54,13 @@ Having experimented with `mpremote`, I have found a way to install the `networku
 
 A `serial_connection` fixture with 'module' scope ensures all tests use the same `SerialTransport` instance, which is used to send commands over the raw REPL. If the fixture raises an exception or all tests have skipped/failed/completed, cleanup and teardown of the connection is carried out by the fixture.
 
+> [!NOTE]
+> Integration tests will skip, if a device is not connected or if the serial connection failed.
+
+![Skipped integration tests](./docs/img/testing_no_serial_connection.png)
+
+### Integration Testing Flow
+
 ```mermaid
 flowchart TD
     A([Run Pytest])

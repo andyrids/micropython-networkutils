@@ -27,17 +27,35 @@ This repo is setup to be a Python [namespace](https://packaging.python.org/en/la
 
 ```text
 micropython-networkutils
+
 ├── networkutils           <-- Core `networkutils` package
-│   ├── manifest.py        <-- Only relevant to `micropython-lib` packages
 │   ├── networkutils       <-- Device installation dir i.e. `lib/networkutils/`
 │   │   └── core.py        <-- Core package module
 │   └── package.json       <-- Package URLs & dependencies (for `mip install`)
 ├── networkutils-mqtt      <-- Extension package for `networkutils`
-│   ├── manifest.py        <-- Only relevant to `micropython-lib` packages
 │   ├── networkutils       <-- Device installation dir i.e. `lib/networkutils/`
 │   │   └── mqtt.py        <-- Extension package module
 │   ├── package.json       <-- Extension package URLs & dependencies (includes core `networkutils`)
 │   └── pyproject.toml     <-- Extension package `pyproject.toml` enables uv workspace & namespace package
+│
+├── scripts                <-- Project scripts
+│   ├── build
+│   │   ├── compile.py     <-- Hatch build hook for compilation with `mpy-cross` (WIP)
+│   │   └── __init__.py
+│   └── __init__.py
+│
+├── tests                  <-- Pytest Unit & integration tests
+│   ├── conftest.py        <-- Pytest fixtures
+│   ├── __init__.py
+│   ├── integration
+│   │   ├── __init__.py
+│   │   └── test_connection_and_package.py
+│   └── unit
+│       ├── __init__.py
+│       ├── test_network_config.py
+│       ├── test_network_interface_complete.py
+│       └── test_network_interface_complex.py
+│
 ├── pyproject.toml         <-- Root `pyproject.toml` enables namespace package setup/installation
 └── CHANGELOG.md           <-- Notable changes to this project
 └── CONTRIBUTION.md        <-- Local development & contribution guidance

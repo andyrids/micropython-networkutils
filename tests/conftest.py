@@ -8,6 +8,7 @@ License: GNU General Public License v3 or later.
 
 Copyright (C): 2025.
 """
+
 import logging
 import sys
 from binascii import hexlify, unhexlify
@@ -20,6 +21,7 @@ from pytest_mock import MockerFixture
 
 class MockWLAN:
     """A mock class for `network.WLAN`"""
+
     IF_STA = 0
     IF_AP = 1
     PM_NONE = 0
@@ -148,6 +150,7 @@ class MockWLAN:
         """
         return self._status
 
+
 @pytest.fixture
 def mock_machine_module(mocker: MockerFixture) -> MagicMock:
     """"""
@@ -240,7 +243,7 @@ def patch_micropython_stdlib(
         "machine": mock_machine_module,
         "network": mock_network_module,
         "time": mock_time_module,
-        #"logging": mock_logging_module
+        # "logging": mock_logging_module
     }
     mocker.patch.dict("sys.modules", modules)
 
@@ -250,6 +253,7 @@ def network_env_instance() -> Any:
     """Provides a clean NetworkEnv instance for each test."""
     # Import after mocks are set up by autouse fixture
     from networkutils.core import NetworkEnv
+
     # clear singleton instance & environment for test isolation
     NetworkEnv._instance = None
     NetworkEnv._env = {}

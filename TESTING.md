@@ -27,7 +27,7 @@ Activate the virtual environment:
 ├── tests                                      <-- Main test directory
 │   ├── integration                            <-- Integration tests
 │   │   ├── __init__.py
-│   │   └── main.py                            <-- WIP for integration tests
+│   │   └── test_connection_and_package.py     <-- WIP for integration tests
 │   ├── unit                                   <-- Unit tests
 │   │   ├── __init__.py
 │   │   ├── test_network_config.py             <-- Network configuration tests
@@ -53,6 +53,13 @@ pytest --cov=networkutils/networkutils -v
 Having experimented with `mpremote`, I have found a way to install the `networkutils` package and connect to a microcontroller in a script context, rather than through the CLI. Through a programmatic connection to the REPL, it is possible to send commands that utilise and test the package on the device, returning any output as a string for assertions within pytest functions.
 
 A `serial_connection` fixture with 'module' scope ensures all tests use the same `SerialTransport` instance, which is used to send commands over the raw REPL. If the fixture raises an exception or all tests have skipped/failed/completed, cleanup and teardown of the connection is carried out by the fixture.
+
+> [!NOTE]
+> Integration tests will skip, if a device is not connected or if the serial connection failed.
+
+![Skipped integration tests](./docs/img/testing_no_serial_connection.png)
+
+### Integration Testing Flow
 
 ```mermaid
 flowchart TD

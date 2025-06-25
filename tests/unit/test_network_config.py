@@ -7,6 +7,7 @@ License: GNU General Public License v3 or later.
 
 Copyright (C): 2025.
 """
+
 import pytest
 from pytest_mock import MockerFixture
 from unittest.mock import MagicMock
@@ -15,16 +16,18 @@ from unittest.mock import MagicMock
 def test_networkenv_singleton() -> None:
     """Test `NetworkEnv` is a singleton."""
     from networkutils.core import NetworkEnv
+
     NetworkEnv._instance = None
     NetworkEnv._env = {}
     assert NetworkEnv() is NetworkEnv()
 
 
 def test_networkenv_getenv_putenv(
-        mocker: MockerFixture, network_env_instance: "NetworkEnv"
-    ) -> None:
+    mocker: MockerFixture, network_env_instance: "NetworkEnv"
+) -> None:
     """Test getting & setting network environment variables."""
     from networkutils.core import NetworkEnv
+
     env = network_env_instance
 
     env.putenv("FOO", "BAR")

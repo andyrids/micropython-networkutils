@@ -1,9 +1,9 @@
 [project]
-name = "networkutils-mqtt"
-description = "Micropython network interface utility package."
+name = "micropython-networkutils-mqtt"
+description = "MQTT extension package for micropython-networkutils."
 authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
-version = "0.0.1"
+version = "0.1.0"
 requires-python = ">=3.10"
 classifiers=[
     # 3 - Alpha | 4 - Beta | 5 - Production/Stable
@@ -24,7 +24,7 @@ classifiers=[
 keywords = ["micropython", "package", "microcontroller", "network"]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
@@ -32,3 +32,10 @@ only-include = ["networkutils"]
 
 [tool.hatch.build.targets.wheel]
 only-include = ["networkutils"]
+
+[tool.hatch.build.targets.sdist.hooks.custom]
+# custom build hook configuration
+path = "../scripts/build/cross_compile.py"
+# custom build hook options
+only-include = ["networkutils"]
+compiler-options = ["-O2"]

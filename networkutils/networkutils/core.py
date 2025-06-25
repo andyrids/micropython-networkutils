@@ -43,22 +43,6 @@ Functions:
     debug_message: Print a debug message.
 
     debug_network_status: Print WLAN status debug messages.
-
-Examples:
-    from network_utils import (
-        NetworkEnv, connection_issue, get_network_interface, _logger
-    )
-
-    env = NetworkEnv()
-    env.putenv("WLAN_SSID", "your SSID")
-    env.putenv("WLAN_PASSWORD", "your PASSWORD")
-
-    WLAN, WLAN_MODE = get_network_interface(debug=True)
-
-    if not connection_issue(WLAN, WLAN_MODE):
-        _logger.debug("STA CONNECTION ESTABLISHED")
-    else:
-        _logger.debug("CONNECTION ERROR, WLAN IN AP MODE")
 """
 
 import binascii

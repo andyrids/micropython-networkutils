@@ -21,10 +21,12 @@ Author: Andrew Ridyard.
 License: GNU General Public License v3 or later.
 
 Copyright (C): 2025."""
+
 import logging
 import time
 from ast import literal_eval
 from typing import Generator
+from unittest.mock import MagicMock
 
 import pytest
 from mpremote import mip
@@ -45,9 +47,9 @@ _logger.addHandler(_rich_handler)
 
 
 @pytest.fixture(scope="module")
-def serial_connection() -> Generator[SerialTransport]:
+def serial_connection() -> Generator[SerialTransport | None]:
     """Yields a `SerialTransport` instance to integration tests.
-    
+
     If connection fails, any tests consuming the fixture are skipped.
     After test completion, finally statement runs connection teardown
     and cleanup.
@@ -64,8 +66,6 @@ def serial_connection() -> Generator[SerialTransport]:
                     _console.print_exception()
                 else:
                     break
-        assert serial_transport is not None
-        assert serial_transport.serial.is_open
         yield serial_transport
     finally:
         _console.print("Fixture `serial_connection`: cleanup & teardown")
@@ -77,18 +77,24 @@ def serial_connection() -> Generator[SerialTransport]:
             assert serial_transport.serial.is_open is False
 
 
+@pytest.fixture(autouse=True)
+def skip_if_no_serial_connection(serial_connection: SerialTransport) -> None:
+    """Skip tests if `SerialTransport` connection failed."""
+    if serial_connection is None:
+        pytest.skip("No `SerialTransport` connection.")
+
+
 def test_enter_raw_repl(serial_connection: SerialTransport) -> None:
     """"""
     assert serial_connection.serial.is_open
-    serial_connection.enter_raw_repl(soft_reset=False)
+    serial_connection.enter_raw_repl(soft_reset=True)
     time.sleep(1)
     assert serial_connection.in_raw_repl
 
 
 def test_package_installation(
-        serial_connection: SerialTransport,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
+) -> None:
     """"""
     assert serial_connection.serial.is_open
     assert serial_connection.in_raw_repl
@@ -101,7 +107,7 @@ def test_package_installation(
                 "https://micropython.org/pi/v2",
                 "lib",
                 "main",
-                True
+                True,
             )
         except CommandError as e:
             e.add_note("`networkutils` installation failed")
@@ -112,9 +118,8 @@ def test_package_installation(
 
 
 def test_package_import(
-        serial_connection: SerialTransport,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
+) -> None:
     """"""
     assert serial_connection.serial.is_open
     assert serial_connection.in_raw_repl
@@ -122,11 +127,14 @@ def test_package_import(
     with caplog.at_level(logging.DEBUG, logger="integration"):
         serial_connection.exec("from networkutils.core import _DEVICE_ID")
         serial_connection.exec("from networkutils.core import NetworkEnv")
-    
+        serial_connection.exec(
+            "from networkutils.core import get_network_interface"
+        )
+
+
 def test_network_config(
-        serial_connection: SerialTransport,
-        caplog: pytest.LogCaptureFixture
-    ) -> None:
+    serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
+) -> None:
     """"""
     assert serial_connection.serial.is_open
     assert serial_connection.in_raw_repl
@@ -134,8 +142,41 @@ def test_network_config(
     with caplog.at_level(logging.DEBUG, logger="integration"):
         ENV = {"WLAN_PASSWORD": "PASSWORD", "WLAN_SSID": "SSID"}
         serial_connection.exec("env = NetworkEnv();")
-        for k,v in ENV.items():
+        for k, v in ENV.items():
             serial_connection.exec(f"env.putenv('{k}', '{v}')")
 
         out = serial_connection.exec("print(repr(env._env))")
         assert literal_eval(out.decode().strip()) == ENV
+
+
+def test_network_interface_ap(
+    serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
+) -> None:
+    """"""
+    assert serial_connection.serial.is_open
+    assert serial_connection.in_raw_repl
+
+    with caplog.at_level(logging.DEBUG, logger="integration"):
+        # reset environment
+        ENV = {"WLAN_PASSWORD": None, "WLAN_SSID": None}
+        for k, v in ENV.items():
+            serial_connection.exec(f"env.putenv('{k}', {v})")
+        out = serial_connection.exec("print(repr(env._env))")
+        assert literal_eval(out.decode().strip()) == ENV
+
+        # WLAN_MODE should be WLAN.AP_IF (1)
+        serial_connection.exec(
+            "WLAN, WLAN_MODE = get_network_interface(debug=True)"
+        )
+
+        out = serial_connection.exec("print(WLAN_MODE)")
+        assert int(out.decode().strip()) == 1
+
+        out = serial_connection.exec("print(WLAN.active())")
+        assert literal_eval(out.decode().strip()) is True
+
+        out = serial_connection.exec("print(_DEVICE_ID)")
+        DEVICE_ID = out.decode().strip()
+
+        out = serial_connection.exec("print(WLAN.config('ssid'))")
+        assert out.decode().strip() == f"DEVICE-{DEVICE_ID}"

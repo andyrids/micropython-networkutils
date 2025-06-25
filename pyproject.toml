@@ -3,7 +3,7 @@ name = "micropython-networkutils"
 description = "Micropython network interface utility package."
 authors = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
 maintainers = [{name = "Andrew Ridyard", email = "andyrids.uncapped698@passmail.net"}]
-version = "0.0.1"
+dynamic = ["version"]
 license = {file = "LICENSE.md"}
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
@@ -28,14 +28,16 @@ dependencies = []
 
 # this is a uv workspace package
 [project.optional-dependencies]
-mqtt = ["networkutils-mqtt"]
+mqtt = ["micropython-networkutils-mqtt"]
 
 [dependency-groups]
 dev = [
     "bump-my-version>=1.1.2",
+    "hatch>=1.14.1",
     "micropython-rp2-rpi-pico-w-stubs>=1.25.0.post3",
     "micropython-stdlib-stubs>=1.25.0",
     "mpremote>=1.25.0",
+    "mpy-cross>=1.25.0,<1.26.0",
     "pytest>=8.4.0",
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
@@ -46,9 +48,10 @@ dev = [
 Repository = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils"
 Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils/-/issues"
 
+
 # enables the `mqtt` optional dependency with `networkutils-mqtt` as a uv workspace
 [tool.uv.sources]
-networkutils-mqtt = { workspace = true }
+micropython-networkutils-mqtt = { workspace = true }
 
 # all workspace packages go here
 [tool.uv.workspace]
@@ -82,7 +85,7 @@ convention = "google"
 addopts = ["--import-mode=importlib"]
 
 [tool.bumpversion]
-current_version = "0.0.1"
+current_version = "0.1.0"
 commit = true
 commit_args = "--no-verify"
 tag = true
@@ -91,11 +94,6 @@ tag_message = "chore: tag version update {current_version} -> {new_version}."
 allow_dirty = false
 message = "chore: version update {current_version} -> {new_version}."
 
-# update pyproject.toml version
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
 
 # update package.json version
 [[tool.bumpversion.files]]
@@ -110,8 +108,15 @@ search = 'version="{current_version}"'
 replace = 'version="{new_version}"'
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist.hooks.custom]
+# custom build hook configuration
+path = "scripts/build/compile.py"
+# custom build hook options
+only-include = ["networkutils/networkutils"]
+compiler-options = ["-O2"]
 
 # `packages` causes DIR collapse i.e. `networkutils/networkutils` -> `networkutils` and
 # `only-include` set to `networkutils` in the extension packages' `pyproject.toml`
@@ -120,4 +125,7 @@ build-backend = "hatchling.build"
 packages = ["networkutils/networkutils"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["networkutils/networkutils/"]
+packages = ["networkutils/networkutils"]
+
+[tool.hatch.version]
+source = "vcs"

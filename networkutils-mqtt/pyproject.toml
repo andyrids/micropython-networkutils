@@ -35,7 +35,7 @@ only-include = ["networkutils"]
 
 [tool.hatch.build.targets.sdist.hooks.custom]
 # custom build hook configuration
-path = "../scripts/build/cross_compile.py"
+path = "../scripts/build/compile.py"
 # custom build hook options
 only-include = ["networkutils"]
 compiler-options = ["-O2"]

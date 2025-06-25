@@ -27,7 +27,6 @@ This repo is setup to be a Python [namespace](https://packaging.python.org/en/la
 
 ```text
 micropython-networkutils
-
 ├── networkutils           <-- Core `networkutils` package
 │   ├── networkutils       <-- Device installation dir i.e. `lib/networkutils/`
 │   │   └── core.py        <-- Core package module

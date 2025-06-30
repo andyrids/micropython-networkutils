@@ -124,7 +124,6 @@ class CrossCompileHook(BuildHookInterface):
             src.rename(dest)
             self.app.display_info(f"{dest=}")
 
-
     def _compile_files(
         self,
         compiler_cmd: list[str],

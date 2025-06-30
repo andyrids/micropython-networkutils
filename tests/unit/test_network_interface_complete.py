@@ -61,6 +61,7 @@ def test_connection_issue(
     assert connection_issue(mock_wlan, mock_network_module.STA_IF) is True
     mock_wlan.isconnected.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_activate_interface_becomes_active(
     mocker: MockerFixture,
@@ -83,6 +84,7 @@ async def test_activate_interface_becomes_active(
     assert caplog.text
     assert mock_asyncio_module.sleep.call_count == 1
 
+
 @pytest.mark.asyncio
 async def test_activate_interface_timeout(
     mocker: MockerFixture,
@@ -104,6 +106,7 @@ async def test_activate_interface_timeout(
     assert mock_asyncio_module.sleep.call_count == 5
     assert caplog.text
 
+
 @pytest.mark.asyncio
 async def test_deactivate_interface_becomes_inactive(
     mock_asyncio_module: MagicMock,
@@ -122,6 +125,7 @@ async def test_deactivate_interface_becomes_inactive(
     assert mock_wlan_instance.active.call_count >= 3
     assert caplog.text
     assert mock_asyncio_module.sleep.call_count == 1
+
 
 @pytest.mark.asyncio
 async def test_deactivate_interface_timeout(
@@ -142,6 +146,7 @@ async def test_deactivate_interface_timeout(
     mock_wlan_instance.active.assert_any_call(False)
     assert mock_asyncio_module.sleep.call_count == 5
     assert caplog.text
+
 
 @pytest.mark.asyncio
 async def test_connect_interface_success(
@@ -316,7 +321,9 @@ async def test_access_point_reset_env_vars_set(
     mock_network_module.WLAN.return_value = new_mock_wlan
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        reset_wlan, reset_wlan_mode = await access_point_reset(mock_wlan_instance)
+        reset_wlan, reset_wlan_mode = await access_point_reset(
+            mock_wlan_instance
+        )
 
     # 1. `WLAN.disconnect` 2. `deactivate_interface` 3. `WLAN.deinit`
     mock_wlan_instance.disconnect.assert_called_once()
@@ -361,7 +368,9 @@ async def test_access_point_reset_env_vars_not_set(
     PASS = _DEVICE_ID
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        reset_wlan, reset_wlan_mode = await access_point_reset(mock_wlan_instance)
+        reset_wlan, reset_wlan_mode = await access_point_reset(
+            mock_wlan_instance
+        )
 
     mock_network_module.WLAN.assert_called_once_with(mock_network_module.AP_IF)
 

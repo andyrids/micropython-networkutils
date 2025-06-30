@@ -37,7 +37,8 @@ def mock_interface_helpers(
     }
 
 
-def test_get_network_interface_debug_mode(
+@pytest.mark.asyncio
+async def test_get_network_interface_debug_mode(
     mocker: MockerFixture,
     network_env_instance: "NetworkEnv",
     mock_network_module: MagicMock,
@@ -58,7 +59,7 @@ def test_get_network_interface_debug_mode(
     # `_logger` instance from `networkutils.core` is what we need to check
     # in `conftest`, `logging.getLogger` returns `mock_logger_instance`
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        get_network_interface(debug=True)
+        await get_network_interface(debug=True)
 
     # `networkutils.core._logger` is `logging.getLogger("networkutils.core")`
     # default level is `logging.ERROR`, expecting `logging.DEBUG`

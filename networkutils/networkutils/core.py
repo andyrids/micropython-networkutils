@@ -4,7 +4,8 @@
 
 This `network-utils` package contains utility functions that help implement
 concrete network classes within the MicroPython `network` module, such as the
-`network.WLAN` class.
+`network.WLAN` class. These functions utilise `asyncio` to enable asynchronous
+programming.
 
 The package has been designed to allow for future extensions:
 
@@ -28,23 +29,25 @@ Exceptions:
     WLANTimeoutError: Raised on WLAN connection timeout.
 
 Functions:
-    access_point_reset: Reset a WLAN instance and restart in Access Point
-        (AP) mode.
+    async access_point_reset: Reset a WLAN instance and restart in Access
+        Point (AP) mode.
 
-    activate_interface: Activate WLAN interface and wait 5 seconds for
+    async activate_interface: Activate WLAN interface and wait 5 seconds for
         initialisation.
 
-    connect_interface: Connect a WLAN interface in STA mode.
+    async connect_interface: Connect a WLAN interface in STA mode.
 
     connection_issue: Test for a connection issue.
 
-    deactivate_interface: Deactivate a WLAN interface.
+    async deactivate_interface: Deactivate a WLAN interface.
 
-    debug_message: Print a debug message.
+    async get_network_interface: Initialise & activate a `network.WLAN`
+        interface instance.
 
-    debug_network_status: Print WLAN status debug messages.
+    network_status_message: Print WLAN status debug messages.
 """
 
+import asyncio
 import binascii
 import logging
 import machine
@@ -120,7 +123,7 @@ class WLANTimeoutError(Exception):
     pass
 
 
-def access_point_reset(WLAN: network.WLAN) -> tuple[network.WLAN, int]:
+async def access_point_reset(WLAN: network.WLAN) -> tuple[network.WLAN, int]:
     """Reset a WLAN instance and restart in Access Point (AP) mode.
 
     Configures AP SSID & password through credentials stored in `AP_SSID` &
@@ -136,7 +139,7 @@ def access_point_reset(WLAN: network.WLAN) -> tuple[network.WLAN, int]:
             `network.AP_IF` AP mode enumeration value.
     """
     WLAN.disconnect()
-    deactivate_interface(WLAN)
+    await deactivate_interface(WLAN)
     WLAN.deinit()
 
     env = NetworkEnv()
@@ -153,11 +156,11 @@ def access_point_reset(WLAN: network.WLAN) -> tuple[network.WLAN, int]:
         _logger.debug("USING DEFAULT AP_SSID & AP_PASSWORD")
 
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)
-    activate_interface(WLAN)
+    await activate_interface(WLAN)
     return WLAN, network.AP_IF
 
 
-def activate_interface(WLAN: network.WLAN) -> None:
+async def activate_interface(WLAN: network.WLAN) -> None:
     """Activate WLAN interface and wait 5 seconds for initialisation.
 
     NOTE: The active method does not behave as expected on the Pico W for STA
@@ -179,12 +182,12 @@ def activate_interface(WLAN: network.WLAN) -> None:
             if WLAN.status() == network.STAT_GOT_IP or WLAN.active():
                 _logger.debug("NETWORK INTERFACE ACTIVE - AP MODE")
                 break
-            sleep(1)
+            await asyncio.sleep(1)
     except StopIteration:
         _logger.debug("NETWORK INTERFACE TIMEOUT - STA MODE")
 
 
-def connect_interface(WLAN: network.WLAN) -> None:
+async def connect_interface(WLAN: network.WLAN) -> None:
     """Connect a WLAN interface in STA mode.
 
     A connection is attempted using credentials stored in `WLAN_SSID` &
@@ -210,6 +213,7 @@ def connect_interface(WLAN: network.WLAN) -> None:
             _logger.debug("ENV $WLAN_SSID NOT SET")
             raise WLANConnectionError
 
+        # is WLAN.scan() a blocking operation?
         networks = {name.decode() for name, *_ in set(WLAN.scan()) if name}
         if WLAN_SSID not in networks:
             _logger.error(f"SSID '{WLAN_SSID}' NOT AVAILABLE")
@@ -235,7 +239,7 @@ def connect_interface(WLAN: network.WLAN) -> None:
             _logger.debug(f"WLAN STATUS: {WLAN.status()}")
             if (WLAN.status() == network.STAT_GOT_IP) or WLAN.isconnected():
                 break
-            sleep(1)
+            await asyncio.sleep(1)
     except StopIteration as e:
         _logger.error(f"WLAN CONNECTION TO SSID {WLAN_SSID} TIMEOUT")
         _logger.debug(network_status_message(WLAN, WLAN.IF_STA))
@@ -260,7 +264,7 @@ def connection_issue(WLAN: network.WLAN, mode: int) -> bool:
     )
 
 
-def deactivate_interface(WLAN: network.WLAN) -> None:
+async def deactivate_interface(WLAN: network.WLAN) -> None:
     """Deactivate a WLAN interface.
 
     NOTE: The `WLAN.active` method does not behave as expected on the Pico W
@@ -282,12 +286,12 @@ def deactivate_interface(WLAN: network.WLAN) -> None:
             if not WLAN.active():
                 _logger.debug("NETWORK INTERFACE INACTIVE - AP MODE")
                 break
-            sleep(1)
+            await asyncio.sleep(1)
     except StopIteration:
         _logger.debug("DEACTIVATE NETWORK TIMEOUT - STA MODE")
 
 
-def get_network_interface(
+async def get_network_interface(
     pm: Optional[int] = None, debug: bool = False
 ) -> tuple[network.WLAN, int]:
     """Initialise & activate a `network.WLAN` interface instance.
@@ -368,19 +372,19 @@ def get_network_interface(
     if pm not in {WLAN.PM_NONE, WLAN.PM_PERFORMANCE, WLAN.PM_POWERSAVE}:
         pm = WLAN.PM_NONE
     WLAN.config(ssid=AP_SSID, password=AP_PASSWORD, pm=pm)
-    activate_interface(WLAN)
+    await activate_interface(WLAN)
     if WLAN_MODE == network.AP_IF:
         return WLAN, WLAN_MODE
 
     # attempt WLAN interface connection
     try:
         # successful STA mode connection
-        connect_interface(WLAN)
+        await connect_interface(WLAN)
         _logger.debug(f"WLAN CONNECTION SUCCESSFUL: {WLAN_SSID}")
         return WLAN, WLAN_MODE
     except (WLANConnectionError, WLANTimeoutError):
         _logger.error("RESETTING TO AP MODE")
-        WLAN, WLAN_MODE = access_point_reset(WLAN)
+        WLAN, WLAN_MODE = await access_point_reset(WLAN)
         return WLAN, WLAN_MODE
 
 

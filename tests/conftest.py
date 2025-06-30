@@ -13,7 +13,7 @@ import logging
 import sys
 from binascii import hexlify, unhexlify
 from typing import Any, Optional
-from unittest.mock import MagicMock, call
+from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 from pytest_mock import MockerFixture
@@ -202,6 +202,14 @@ def mock_time_module(mocker: MockerFixture) -> MagicMock:
 
 
 @pytest.fixture
+def mock_asyncio_module(mocker: MockerFixture) -> MagicMock:
+    """Mocks the time module."""
+    mock_asyncio = mocker.MagicMock(name="asyncio_module")
+    mock_asyncio.sleep = mocker.AsyncMock(name="sleep_func")
+    return mock_asyncio
+
+
+@pytest.fixture
 def mock_logging_module(mocker: MockerFixture) -> MagicMock:
     """Mocks the logging module."""
     mock_logging = mocker.MagicMock(name="logging_module")
@@ -229,6 +237,7 @@ def mock_wlan_instance(mock_network_module: MagicMock) -> MagicMock:
 @pytest.fixture(autouse=True)
 def patch_micropython_stdlib(
     mocker: MockerFixture,
+    mock_asyncio_module: MagicMock,
     mock_machine_module: MagicMock,
     mock_network_module: MagicMock,
     mock_time_module: MagicMock,
@@ -240,10 +249,10 @@ def patch_micropython_stdlib(
     with these mocks.
     """
     modules = {
+        "asyncio": mock_asyncio_module,
         "machine": mock_machine_module,
         "network": mock_network_module,
         "time": mock_time_module,
-        # "logging": mock_logging_module
     }
     mocker.patch.dict("sys.modules", modules)
 

@@ -62,11 +62,12 @@ def test_connection_issue(
     mock_wlan.isconnected.assert_called_once()
 
 
-def test_activate_interface_becomes_active(
+@pytest.mark.asyncio
+async def test_activate_interface_becomes_active(
     mocker: MockerFixture,
+    mock_asyncio_module: MagicMock,
     mock_network_module: MagicMock,
     mock_wlan_instance: MagicMock,
-    mock_time_module: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test activate_interface when wlan.active() becomes True (AP mode)."""
@@ -77,18 +78,19 @@ def test_activate_interface_becomes_active(
     mock_wlan_instance.active.side_effect = (None, False, True)
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        activate_interface(mock_wlan_instance)
+        await activate_interface(mock_wlan_instance)
 
     assert mock_wlan_instance.active.call_count >= 3
     assert caplog.text
-    assert mock_time_module.sleep.call_count == 1
+    assert mock_asyncio_module.sleep.call_count == 1
 
 
-def test_activate_interface_timeout(
+@pytest.mark.asyncio
+async def test_activate_interface_timeout(
     mocker: MockerFixture,
+    mock_asyncio_module: MagicMock,
     mock_network_module: MagicMock,
     mock_wlan_instance: MagicMock,
-    mock_time_module: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test activate_interface timeout scenario."""
@@ -98,17 +100,18 @@ def test_activate_interface_timeout(
     mock_wlan_instance.active.return_value = False
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        activate_interface(mock_wlan_instance)
+        await activate_interface(mock_wlan_instance)
 
     mock_wlan_instance.active.assert_any_call(True)
-    assert mock_time_module.sleep.call_count == 5
+    assert mock_asyncio_module.sleep.call_count == 5
     assert caplog.text
 
 
-def test_deactivate_interface_becomes_inactive(
+@pytest.mark.asyncio
+async def test_deactivate_interface_becomes_inactive(
+    mock_asyncio_module: MagicMock,
     mock_network_module: MagicMock,
     mock_wlan_instance: MagicMock,
-    mock_time_module: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test deactivate_interface when wlan.active() becomes False."""
@@ -117,17 +120,18 @@ def test_deactivate_interface_becomes_inactive(
     mock_wlan_instance.active.side_effect = (None, True, False)
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        deactivate_interface(mock_wlan_instance)
+        await deactivate_interface(mock_wlan_instance)
 
     assert mock_wlan_instance.active.call_count >= 3
     assert caplog.text
-    assert mock_time_module.sleep.call_count == 1
+    assert mock_asyncio_module.sleep.call_count == 1
 
 
-def test_deactivate_interface_timeout(
+@pytest.mark.asyncio
+async def test_deactivate_interface_timeout(
     mocker: MockerFixture,
+    mock_asyncio_module: MagicMock,
     mock_wlan_instance: MagicMock,
-    mock_time_module: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test deactivate_interface timeout scenario."""
@@ -137,18 +141,19 @@ def test_deactivate_interface_timeout(
     mock_wlan_instance.active.side_effect = side_effects
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        deactivate_interface(mock_wlan_instance)
+        await deactivate_interface(mock_wlan_instance)
 
     mock_wlan_instance.active.assert_any_call(False)
-    assert mock_time_module.sleep.call_count == 5
+    assert mock_asyncio_module.sleep.call_count == 5
     assert caplog.text
 
 
-def test_connect_interface_success(
+@pytest.mark.asyncio
+async def test_connect_interface_success(
     mocker: MockerFixture,
+    mock_asyncio_module: MagicMock,
     network_env_instance: "NetworkEnv",
     mock_wlan_instance: MagicMock,
-    mock_time_module: MagicMock,
     mock_network_module: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -174,7 +179,7 @@ def test_connect_interface_success(
     mock_wlan_instance.isconnected.side_effect = (False, False, True)
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        connect_interface(mock_wlan_instance)
+        await connect_interface(mock_wlan_instance)
 
     mock_wlan_instance.scan.assert_called_once()
     mock_wlan_instance.connect.assert_called_once_with(SSID, PASSWORD)
@@ -182,8 +187,10 @@ def test_connect_interface_success(
     assert str(mock_network_module.STAT_GOT_IP) in caplog.text
 
 
-def test_connect_interface_ssid_not_set(
+@pytest.mark.asyncio
+async def test_connect_interface_ssid_not_set(
     network_env_instance: "NetworkEnv",  # type: ignore
+    mock_asyncio_module: MagicMock,
     mock_wlan_instance: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -194,11 +201,13 @@ def test_connect_interface_ssid_not_set(
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
         with pytest.raises(WLANConnectionError):
-            connect_interface(mock_wlan_instance)
+            await connect_interface(mock_wlan_instance)
 
 
-def test_connect_interface_ssid_not_found_in_scan(
+@pytest.mark.asyncio
+async def test_connect_interface_ssid_not_found_in_scan(
     network_env_instance: "NetworkEnv",
+    mock_asyncio_module: MagicMock,
     mock_wlan_instance: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -214,13 +223,15 @@ def test_connect_interface_ssid_not_found_in_scan(
 
     with caplog.at_level(logging.ERROR, logger="networkutils.core"):
         with pytest.raises(WLANConnectionError):
-            connect_interface(mock_wlan_instance)
+            await connect_interface(mock_wlan_instance)
 
     assert SSID in caplog.text
 
 
-def test_connect_interface_os_error(
+@pytest.mark.asyncio
+async def test_connect_interface_os_error(
     network_env_instance: "NetworkEnv",
+    mock_asyncio_module: MagicMock,
     mock_wlan_instance: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -240,14 +251,16 @@ def test_connect_interface_os_error(
 
     with caplog.at_level(logging.ERROR, logger="networkutils.core"):
         with pytest.raises(WLANConnectionError):
-            connect_interface(mock_wlan_instance)
+            await connect_interface(mock_wlan_instance)
 
     _, log_level, message = next(iter(caplog.record_tuples))
     assert SSID in message and log_level == logging.ERROR
 
 
-def test_connect_interface_timeout(
+@pytest.mark.asyncio
+async def test_connect_interface_timeout(
     network_env_instance: "NetworkEnv",
+    mock_asyncio_module: MagicMock,
     mock_wlan_instance: MagicMock,
     mock_time_module: MagicMock,
     mock_network_module: MagicMock,
@@ -273,19 +286,21 @@ def test_connect_interface_timeout(
 
     with caplog.at_level(logging.ERROR, logger="networkutils.core"):
         with pytest.raises(WLANTimeoutError):
-            connect_interface(mock_wlan_instance)
+            await connect_interface(mock_wlan_instance)
 
-    assert mock_time_module.sleep.call_count == 30
+    assert mock_asyncio_module.sleep.call_count == 30
 
     _, log_level, message = next(iter(caplog.record_tuples))
     assert SSID in message and log_level == logging.ERROR
 
 
-def test_access_point_reset_env_vars_set(
+@pytest.mark.asyncio
+async def test_access_point_reset_env_vars_set(
     mocker: MockerFixture,
     network_env_instance: "NetworkEnv",
-    mock_wlan_instance: MagicMock,
+    mock_asyncio_module: MagicMock,
     mock_network_module: MagicMock,
+    mock_wlan_instance: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test `access_point_reset` when $AP_SSID & $AP_PASSWORD are set."""
@@ -306,7 +321,9 @@ def test_access_point_reset_env_vars_set(
     mock_network_module.WLAN.return_value = new_mock_wlan
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        reset_wlan, reset_wlan_mode = access_point_reset(mock_wlan_instance)
+        reset_wlan, reset_wlan_mode = await access_point_reset(
+            mock_wlan_instance
+        )
 
     # 1. `WLAN.disconnect` 2. `deactivate_interface` 3. `WLAN.deinit`
     mock_wlan_instance.disconnect.assert_called_once()
@@ -324,11 +341,13 @@ def test_access_point_reset_env_vars_set(
     assert reset_wlan_mode == mock_network_module.AP_IF
 
 
-def test_access_point_reset_env_vars_not_set(
+@pytest.mark.asyncio
+async def test_access_point_reset_env_vars_not_set(
     mocker: MockerFixture,
     network_env_instance: "NetworkEnv",
-    mock_wlan_instance: MagicMock,
+    mock_asyncio_module: MagicMock,
     mock_network_module: MagicMock,
+    mock_wlan_instance: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test `access_point_reset` with default AP SSID & password."""
@@ -349,7 +368,9 @@ def test_access_point_reset_env_vars_not_set(
     PASS = _DEVICE_ID
 
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        reset_wlan, reset_wlan_mode = access_point_reset(mock_wlan_instance)
+        reset_wlan, reset_wlan_mode = await access_point_reset(
+            mock_wlan_instance
+        )
 
     mock_network_module.WLAN.assert_called_once_with(mock_network_module.AP_IF)
 

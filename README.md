@@ -21,6 +21,60 @@ flowchart TD
     C --> G[Return AP interface]
 ```
 
+Hierarchical State Machine:
+
+```mermaid
+stateDiagram-v2
+  direction TB
+  state WLAN_INTERFACE {
+    direction TB
+    [*] --> UNINITIALISED
+    state WLAN_MODE <<choice>>
+
+    UNINITIALISED --> INITIALISING
+    INITIALISING --> WLAN_MODE
+    WLAN_MODE --> AP_MODE
+    WLAN_MODE --> STA_MODE
+    STA_MODE --> RESETTING
+    AP_MODE --> RESETTING
+    RESETTING --> UNINITIALISED
+
+    state AP_MODE {
+      direction TB
+      [*] --> INACTIVE_AP
+      INACTIVE_AP --> ACTIVATING_AP
+      ACTIVATING_AP --> ACTIVE_AP
+      ACTIVE_AP --> DEACTIVATING_AP
+      DEACTIVATING_AP --> INACTIVE_AP
+      state ACTIVE_AP {
+        direction TB
+        [*] --> BROADCASTING
+      }
+    }
+    state STA_MODE {
+      direction TB
+      [*] --> INACTIVE_STA
+      INACTIVE_STA --> ACTIVATING_STA
+      ACTIVATING_STA --> ACTIVE_STA
+      ACTIVE_STA --> DEACTIVATING_STA
+      DEACTIVATING_STA --> INACTIVE_STA
+      state ACTIVE_STA {
+        [*] --> DISCONNECTED
+        DISCONNECTED --> SCANNING
+        SCANNING --> CONNECTING
+        CONNECTING --> CONNECTION_ERROR
+        CONNECTION_ERROR --> DISCONNECTED
+        CONNECTION_ERROR --> CONNECTING
+        CONNECTING --> CONNECTED
+        CONNECTED --> DISCONNECTED
+        SCANNING
+        CONNECTING
+        CONNECTED
+      }
+    }
+  }
+```
+
 ## Repository Layout
 
 This repo is setup to be a Python [namespace](https://packaging.python.org/en/latest/guides/packaging-namespace-packages/) package in local development and a in a MicroPython context, this package follows the ***extension package*** concept outlined in the [micropython-lib](https://github.com/micropython/micropython-lib) repository. This enables unit & integration tests with pytest, matching the interface exposed on the device. See [CONTRIBUTING](./CONTRIBUTING.md) for more details.

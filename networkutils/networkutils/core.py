@@ -1,5 +1,5 @@
 # sourcery skip: use-contextlib-suppress
-# pyright: reportMissingImports=false
+# pyright: reportMissingImports=false, reportAttributeAccessIssue=false
 """A MicroPython `network` module utility functions package.
 
 This `network-utils` package contains utility functions that help implement
@@ -59,7 +59,60 @@ from typing import Optional, Union
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
 
-_formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
+_STATE_CMP_OFFLINE = const(1)
+_STATE_DISCONNECTED = const(11)
+_STATE_SCANNING = const(12)
+_STATE_CONNECTION_FAILED = const(13)
+_STATE_DISCONNECTING = const(14)
+_STATE_CONNECTING = const(15)
+_STATE_AP_MODE = const(16)
+
+# _STATE_DISCONNECTED --> _STATE_SCANNING (12)
+_EVENT_INIT_SCAN_REQ = const(121)
+
+# _STATE_CONNECTING --> _STATE_CONNECTION_FAILED (13)
+# _STATE_CONNECTED  --> _STATE_CONNECTION_FAILED (13)
+_EVENT_CONN_FAILED = const(131)
+
+# _STATE_DISCONNECTED --> _STATE_CONNECTING (15)
+_EVENT_INIT_CONN_REQ = const(151)
+# _STATE_CONNECTION_FAILED --> _STATE_CONNECTING (15)
+_EVENT_CONN_RETRY = const(152)
+
+# _STATE_SCANNING --> _STATE_DISCONNECTED (11)
+_EVENT_SCAN_ERROR = const(111)
+# _STATE_SCANNING --> _STATE_DISCONNECTED (11)
+_EVENT_SCAN_COMPLETE = const(112)
+# _STATE_CONNECTION_FAILED --> _STATE_DISCONNECTED (11)
+_EVENT_RESET_REQ = const(113)
+# _STATE_DISCONNECTING --> _STATE_DISCONNECTED (11)
+_EVENT_DISCONN_COMPLETE = const(114)
+# _STATE_AP_MODE --> _STATE_DISCONNECTED (11)
+_EVENT_INIT_STA_REQ = const(115)
+# _STATE_AP_MODE --> _STATE_DISCONNECTED (11)
+_EVENT_DEINIT_AP_REQ = const(116)
+
+# _STATE_CONNECTING --> _STATE_DISCONNECTING (14)
+# _STATE_CONNECTED  --> _STATE_DISCONNECTING (14)
+_EVENT_INIT_DISCONN_REQ = const(141)
+
+# _STATE_DISCONNECTED --> _STATE_AP_MODE  (16)
+_EVENT_INIT_AP_REQ = const(161)
+
+_STATE_CMP_ONLINE = const(2)
+_STATE_CONNECTED = const(21)
+
+
+# TOP
+# └─ ACTIVE
+#    ├─ INITIALISING
+#    ├─ STATION_MODE
+#    ├─ AP_MODE
+#    └─ ERROR
+
+
+
+_formatter = logging.Formatter("%(asctime)s - %(levelname)s:%(name)s - %(message)s")
 _stream_handler = logging.StreamHandler(stream=sys.stdout)
 _stream_handler.setFormatter(_formatter)
 _logger = logging.getLogger(__name__)
@@ -359,7 +412,6 @@ async def get_network_interface(
 
     # select WLAN instance mode based on credential values
     if WLAN_SSID is None or len(WLAN_SSID) < 1:
-        # reset WLAN secrets
         _logger.debug(f"INVALID SSID ({WLAN_SSID}) SETTING AP MODE")
         WLAN_MODE = network.AP_IF
     else:

@@ -33,11 +33,12 @@ stateDiagram-v2
 
     UNINITIALISED --> INITIALISING
     INITIALISING --> WLAN_MODE
+    WLAN_MODE --> TERMINAL_ERROR
     WLAN_MODE --> AP_MODE
     WLAN_MODE --> STA_MODE
     STA_MODE --> RESETTING
     AP_MODE --> RESETTING
-    RESETTING --> UNINITIALISED
+    RESETTING --> INITIALISING
 
     state AP_MODE {
       direction TB
@@ -67,9 +68,6 @@ stateDiagram-v2
         CONNECTION_ERROR --> CONNECTING
         CONNECTING --> CONNECTED
         CONNECTED --> DISCONNECTED
-        SCANNING
-        CONNECTING
-        CONNECTED
       }
     }
   }

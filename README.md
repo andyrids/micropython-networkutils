@@ -5,69 +5,55 @@
 
 This is a repository for the `networkutils` MicroPython package, which contains utility functions related to the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library and external packages @ [`micropython-lib`](https://github.com/micropython/micropython-lib).
 
-1. Uses network environment variable class for credential configuration in client (STA) & access point (AP) modes.
-2. Attempts WiFi connection in STA mode; if unsuccessful, resets interface to AP with default or environment-provided credentials.
-3. Provides helper functions for activating, deactivating, connecting interfaces and checking connection status.
-4. Implements timeouts for network operations to handle hardware-specific quirks.
-
-```mermaid
-flowchart TD
-    A[Start] --> B{STA credentials set?}
-    B -- No --> C[Set AP mode]
-    B -- Yes --> D[Set STA mode]
-    D --> E{STA connect success?}
-    E -- Yes --> F[Return STA interface]
-    E -- No --> C
-    C --> G[Return AP interface]
-```
-
-Hierarchical State Machine:
+* Uses network environment variable class for credential configuration in client (STA) & access point (AP) modes.
+* Uses `asyncio` functionality for utility functions and classes.
+* Uses a hierarchical finite state machine (HFSM) to manage interface & connections.
 
 ```mermaid
 stateDiagram-v2
   direction TB
-  state WLAN_INTERFACE {
+  state network.WLAN {
     direction TB
-    [*] --> UNINITIALISED
-    state WLAN_MODE <<choice>>
+    [*] --> UninitialisedState
+    state WLANModeChoiceState <<choice>>
 
-    UNINITIALISED --> INITIALISING
-    INITIALISING --> WLAN_MODE
-    WLAN_MODE --> TERMINAL_ERROR
-    WLAN_MODE --> AP_MODE
-    WLAN_MODE --> STA_MODE
-    STA_MODE --> RESETTING
-    AP_MODE --> RESETTING
-    RESETTING --> INITIALISING
+    UninitialisedState --> InitialisingState
+    InitialisingState --> WLANModeChoiceState
+    WLANModeChoiceState --> TerminalErrorState
+    WLANModeChoiceState --> APModeState
+    WLANModeChoiceState --> STAModeState
+    STAModeState --> ResettingState
+    APModeState --> ResettingState
+    ResettingState --> InitialisingState
 
-    state AP_MODE {
+    state APModeState {
       direction TB
-      [*] --> INACTIVE_AP
-      INACTIVE_AP --> ACTIVATING_AP
-      ACTIVATING_AP --> ACTIVE_AP
-      ACTIVE_AP --> DEACTIVATING_AP
-      DEACTIVATING_AP --> INACTIVE_AP
-      state ACTIVE_AP {
+      [*] --> InactiveAPState
+      InactiveAPState --> ActivatingAPState
+      ActivatingAPState --> ActiveAPState
+      ActiveAPState --> DeactivatingAPState
+      DeactivatingAPState --> InactiveAPState
+      state ActiveAPState {
         direction TB
-        [*] --> BROADCASTING
+        [*] --> BroadcastingState
       }
     }
-    state STA_MODE {
+    state STAModeState {
       direction TB
-      [*] --> INACTIVE_STA
-      INACTIVE_STA --> ACTIVATING_STA
-      ACTIVATING_STA --> ACTIVE_STA
-      ACTIVE_STA --> DEACTIVATING_STA
-      DEACTIVATING_STA --> INACTIVE_STA
-      state ACTIVE_STA {
-        [*] --> DISCONNECTED
-        DISCONNECTED --> SCANNING
-        SCANNING --> CONNECTING
-        CONNECTING --> CONNECTION_ERROR
-        CONNECTION_ERROR --> DISCONNECTED
-        CONNECTION_ERROR --> CONNECTING
-        CONNECTING --> CONNECTED
-        CONNECTED --> DISCONNECTED
+      [*] --> InactiveSTAState
+      InactiveSTAState --> ActivatingSTAState
+      ActivatingSTAState --> ActiveSTAState
+      ActiveSTAState --> DeactivatingSTAState
+      DeactivatingSTAState --> InactiveSTAState
+      state ActiveSTAState {
+        [*] --> DisconnectedSTAState
+        DisconnectedSTAState --> ScanningSTAState
+        ScanningSTAState --> ConnectingSTAState
+        ConnectingSTAState --> STAConnectionErrorState
+        STAConnectionErrorState --> DisconnectedSTAState
+        STAConnectionErrorState --> ConnectingSTAState
+        ConnectingSTAState --> ConnectedSTAState
+        ConnectedSTAState --> DisconnectedSTAState
       }
     }
   }

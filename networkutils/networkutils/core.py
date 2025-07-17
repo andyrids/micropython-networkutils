@@ -663,13 +663,26 @@ class DeactivatingAPState(State):
         await self.machine.transition(InactiveAPState(self.machine), in_composite=True)
 
 
-# ------ STA Mode Composite State Classes ------ #
+# ------ STAModeState Composite State ------ #
 
 class STAModeState(CompositeState):
     """Composite state for all Client (STA) mode operations."""
     def __init__(self, machine: "Machine") -> None:
         """"""
         super().__init__(machine, InactiveSTAState)
+
+
+# STAModeState [Composite]
+# ├── InactiveSTAState
+# ├── ActivatingSTAState
+# ├── ActiveSTAState [Composite]
+# │   ├── DisconnectedSTAState
+# │   ├── ScanningSTAState
+# │   ├── ConnectingSTAState
+# │   ├── ConnectedSTAState
+# │   ├── STAConnectionErrorState
+# │   └── DeactivatingSTAState
+# └── ResettingState
 
 
 class InactiveSTAState(State):
@@ -795,6 +808,18 @@ class STAConnectionErrorState(State):
             )
 
 
+class DeactivatingSTAState(State):
+    """The STA interface is deactivating."""
+    async def run(self) -> None:
+        await deactivate_interface(self.machine.WLAN)
+        await self.machine.transition(
+            InactiveSTAState(self.machine), in_composite=True
+        )
+
+
+# ------------------------------------------ #
+
+
 class ResettingState(State):
     """Reset network interface."""
     async def run(self) -> None:
@@ -804,6 +829,7 @@ class ResettingState(State):
     def on_exit(self) -> None:
         """"""
         _logger.debug("`ResettingState`")
+
 
 class TerminalErrorState(State):
     """A terminal error state."""
@@ -818,19 +844,28 @@ class TerminalErrorState(State):
         await asyncio.sleep(10)
 
 
+# ------ Finite State Machine Classes ------ #
+
 
 class Machine:
     """Abstract base class for individual State Machines."""
 
     def __init__(self, current_state: State) -> None:
+        """Initialise the Finite State Machine (FSM).
+
+        Args:
+            current_state (State): The current state of the FSM.
+        """
         self._current_state = current_state
 
     @property
     def current_state(self) -> State:
+        """Current FSM `State` property."""
         return self._current_state
 
     @property
     def current_state_name(self) -> str:
+        """Current FSM `State` class name property."""
         return self.current_state.__class__.__name__
 
     async def transition(
@@ -838,17 +873,24 @@ class Machine:
             new_state: State,
             in_composite: bool = False
         ) -> None:
-        """"""
+        """Transition to a new `State`.
+        
+        Args:
+            new_state (State): New `State` to transition to.
+
+            in_composite (bool): New `State` in `CompositeState` flag.
+                Defaults to False.
+        """
         _logger.info("Executing `Machine.transition`")
         _logger.info(
             f"{self.current_state_name} -> {new_state.__class__.__name__}"
         )
 
         if in_composite and isinstance(self.current_state, CompositeState):
-            # delegate transition to parent `State`
+            # delegate transition to parent `CompositeState`
             await self.current_state.change_substate(new_state)
         else:
-            # top-level state transition
+            # top-level 'Atomic' `State` transition
             await self.current_state.on_exit()
             await new_state.on_enter()
             self._current_state = new_state
@@ -862,14 +904,15 @@ class Machine:
             await asyncio.sleep_ms(10)
 
     def start(self) -> None:
-        """"""
+        """Abstract `start` method to be implemented."""
         _logger.info("Executing `Machine.start`")
         raise NotImplementedError("Missing `Machine.start` method")
 
 
 class WLANMachine(Machine):
-    """"""
+    """WLAN interface Finite State Machine (FSM)."""
     def __init__(self) -> None:
+        """Initialise FSM."""
         super().__init__(current_state=UninitialisedState(self))
         self._WLAN = None
         self._WLAN_MODE = None
@@ -877,20 +920,21 @@ class WLANMachine(Machine):
     # --- Public API --- #
 
     def start(self) -> asyncio.Task:
-        """"""
+        """Starts the FSM `run` coroutine `Task`."""
         _logger.info("Executing `WLANMachine.start`")
         return asyncio.create_task(self.handle_exceptions(self.run))
 
     @property
     def WLAN(self) -> network.WLAN:
+        """FSM WLAN interface property."""
         if isinstance(self._WLAN, network.WLAN):
             return self._WLAN
         raise TypeError("`_WLAN` not set to a `network.WLAN` instance")
-    
+
     async def handle_exceptions(
             self, coro: Callable[[], Coroutine[Any, Any, Any]]
         ) -> None:
-        """"""
+        """Handle WLAN-related exceptions in `run` coroutine."""
         try:
             await coro()
         except (WLANConnectionError, NetworkModeError) as e:

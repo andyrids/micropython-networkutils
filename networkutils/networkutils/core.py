@@ -468,17 +468,29 @@ class State:
     def __init__(
             self, machine: "Machine", in_composite: bool = False
     ) -> None:
+        """_summary_
+
+        Args:
+            machine (Machine): _description_
+
+            in_composite (bool, optional): _description_. Defaults to False.
+        """
         self._machine = machine
         self._in_composite = in_composite
 
     @property
     def machine(self) -> "Machine":
-        """"""
+        """Reference to Finite State Machine."""
         return self._machine
     
     @property
+    def name(self) -> str:
+        """Class name (most-derived)."""
+        return self.__class__.__name__
+    
+    @property
     def in_composite(self) -> bool:
-        """"""
+        """`CompositeState` substate flag."""
         return self._in_composite
 
     async def on_enter(
@@ -512,9 +524,10 @@ class CompositeState(State):
     def __init__(
             self,
             machine: "Machine",
-            initial_substate_cls: Optional[type["State"]] = None
+            initial_substate_cls: Optional[type["State"]] = None,
+            in_composite: bool = False,
         ) -> None:
-        super().__init__(machine)
+        super().__init__(machine, in_composite)
         self._substate = None
         self._initial_substate_cls = initial_substate_cls
 
@@ -527,9 +540,7 @@ class CompositeState(State):
         _logger.debug("Executing `CompositeState.on_enter`")
         await super().on_enter()
         if self._initial_substate_cls:
-            _logger.info(
-                f"Initial substate -> `{self._initial_substate_cls}`"
-            )
+            _logger.info("Initial `CompositeState.substate`")
             await self.change_substate(
                 self._initial_substate_cls(self.machine, in_composite=True)
             )
@@ -552,13 +563,13 @@ class CompositeState(State):
     async def change_substate(self, new_substate: State) -> None:
         """"""
         _logger.info("Executing `CompositeState.change_substate`")
-        substate = self.substate
-        if isinstance(substate, State):
-            await substate.on_exit()
+        if isinstance(self.substate, State):
+            await self.substate.on_exit()
             _logger.info(
-                f"{substate.__class__.__name__} -> {new_substate.__class__.__name__}"
+                f"{self.name}[{self.substate.name} -> {new_substate.name}]"
             )
-        
+        else:
+            _logger.info(f"{self.name}[None -> {new_substate.name}]")
         await new_substate.on_enter()
         self._substate = new_substate
 
@@ -610,45 +621,62 @@ class WLANModeChoiceState(State):
         if WLAN_SSID is None or len(WLAN_SSID) < 1:
             self.machine._WLAN = get_network_interface(network.AP_IF)
             self.machine.WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)
-            await self.machine.transition(APModeState(self.machine))
+            await self.machine.transition(
+                APModeState(self.machine, InactiveAPState)
+            )
         else:
             self.machine._WLAN = get_network_interface(network.STA_IF)
-            await self.machine.transition(STAModeState(self.machine))
+            await self.machine.transition(
+                STAModeState(self.machine, InactiveSTAState)
+            )
 
 
 # ------ AP Mode Composite State Classes ------ #
 
 class APModeState(CompositeState):
     """Container state for all Access Point (AP) mode operations."""
-    def __init__(self, machine: "Machine") -> None:
-        """"""
-        super().__init__(machine, initial_substate_cls=InactiveAPState)
+    # def __init__(self, machine: "Machine") -> None:
+    #     """"""
+    #     super().__init__(machine, initial_substate_cls=InactiveAPState)
 
+
+# APModeState [Composite]
+# ├── InactiveAPState
+# ├── ActivatingAPState
+# ├── ActiveAPState [Composite]
+# │   └── BroadcastingState
+# └── DeactivatingAPState
 
 class InactiveAPState(State):
     """The AP interface is initialised but not active."""
     async def run(self) -> None:
         await self.machine.transition(
-            ActivatingAPState(self.machine, in_composite=True), in_composite=True)
+            ActivatingAPState(self.machine, in_composite=True),
+            in_composite=True
+        )
 
 
 class ActivatingAPState(State):
     """Activate the AP interface."""
     async def run(self) -> None:
         await activate_interface(self.machine.WLAN)
-        await self.machine.transition(ActiveAPState(self.machine), in_composite=True)
+        await self.machine.transition(
+            ActiveAPState(self.machine, BroadcastingState, in_composite=True),
+            in_composite=True
+        )
 
 
 class ActiveAPState(CompositeState):
     """The AP is active and broadcasting."""
-    def __init__(self, machine: "Machine"):
-        super().__init__(machine, BroadcastingState)
+    # def __init__(self, machine: "Machine", in_composite: bool = True) -> None:
+    #     super().__init__(machine, in_composite, BroadcastingState)
 
 
 class BroadcastingState(State):
     """The AP is actively broadcasting its network."""
     async def run(self) -> None:
-        _logger.info("AP Mode - `BroadcastingState`")
+        SSID = self.machine.WLAN.config("ssid")
+        _logger.info(f"Broadcasting SSID '{SSID}'")
 
         # 1. Handle client connections
         # 2. Await Event for `DeactivatingAPState`
@@ -667,9 +695,11 @@ class DeactivatingAPState(State):
 
 class STAModeState(CompositeState):
     """Composite state for all Client (STA) mode operations."""
-    def __init__(self, machine: "Machine") -> None:
-        """"""
-        super().__init__(machine, InactiveSTAState)
+    # def __init__(
+    #         self, machine: "Machine", in_composite: bool = False
+    #     ) -> None:
+    #     """"""
+    #     super().__init__(machine, in_composite, InactiveSTAState)
 
 
 # STAModeState [Composite]
@@ -680,9 +710,8 @@ class STAModeState(CompositeState):
 # │   ├── ScanningSTAState
 # │   ├── ConnectingSTAState
 # │   ├── ConnectedSTAState
-# │   ├── STAConnectionErrorState
-# │   └── DeactivatingSTAState
-# └── ResettingState
+# │   └── STAConnectionErrorState
+# └── DeactivatingSTAState
 
 
 class InactiveSTAState(State):
@@ -704,8 +733,6 @@ class ActivatingSTAState(State):
 
 class ActiveSTAState(CompositeState):
     """Composite state for active Client interface operations."""
-    def __init__(self, machine: "Machine") -> None:
-        super().__init__(machine, DisconnectedSTAState)
 
 
 class DisconnectedSTAState(State):
@@ -864,9 +891,9 @@ class Machine:
         return self._current_state
 
     @property
-    def current_state_name(self) -> str:
-        """Current FSM `State` class name property."""
-        return self.current_state.__class__.__name__
+    def name(self) -> str:
+        """FSM class name property."""
+        return self.__class__.__name__
 
     async def transition(
             self,
@@ -881,23 +908,21 @@ class Machine:
             in_composite (bool): New `State` in `CompositeState` flag.
                 Defaults to False.
         """
-        _logger.info("Executing `Machine.transition`")
-        _logger.info(
-            f"{self.current_state_name} -> {new_state.__class__.__name__}"
-        )
-
+        _logger.info(f"Executing `{self.name}.transition`")
         if in_composite and isinstance(self.current_state, CompositeState):
             # delegate transition to parent `CompositeState`
             await self.current_state.change_substate(new_state)
         else:
+            _logger.info(f"{self.current_state.name} -> {new_state.name}")
             # top-level 'Atomic' `State` transition
             await self.current_state.on_exit()
             await new_state.on_enter()
             self._current_state = new_state
+            _logger.info(f"`{self.name}.current_state` is `{self.current_state.name}`")
 
     async def run(self) -> None:
         """Main execution loop."""
-        _logger.info("Executing `Machine.run`")
+        _logger.info(f"Executing `{self.name}.run`")
         await self.current_state.on_enter()
         while True:
             await self.current_state.run()
@@ -938,16 +963,14 @@ class WLANMachine(Machine):
         try:
             await coro()
         except (WLANConnectionError, NetworkModeError) as e:
-            _logger.error(f"`{e.__class__.__name__}`")
-            await self.transition(
-                TerminalErrorState(self, e.__class__.__name__),
-            )
+            exception_cls = e.__class__.__name__
+            _logger.error(f"`{exception_cls}`")
+            await self.transition(TerminalErrorState(self, exception_cls))
         except WLANCredentialsError as e:
-            _logger.error(f"`{e.__class__.__name__}`")
+            exception_cls = e.__class__.__name__
+            _logger.error(f"`{exception_cls}`")
             _logger.error("Check `NetworkEnv` `$WLAN_PASSWORD` value")
-            await self.transition(
-                TerminalErrorState(self, str(e)),
-            )
+            await self.transition(TerminalErrorState(self, exception_cls))
         except Exception as e:
             _logger.error(f"`{e.__class__.__name__}`")
         finally:
@@ -958,9 +981,9 @@ class WLANMachine(Machine):
 
 async def main() -> None:
     """"""
-    env = NetworkEnv()
-    env.putenv("WLAN_SSID", "S23")
-    env.putenv("WLAN_PASSWORD", "q5fgITAC")
+    # env = NetworkEnv()
+    # env.putenv("WLAN_SSID", "S23")
+    # env.putenv("WLAN_PASSWORD", "q5fgITAC")
 
     fsm = WLANMachine()
     fsm.start()

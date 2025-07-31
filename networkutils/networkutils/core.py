@@ -428,8 +428,8 @@ def get_network_interface(
     if mode not in (network.AP_IF, network.STA_IF):
         _logger.error(f"Incorrect Network mode (`{mode}`)")
         raise NetworkModeError
-
-    _logger.debug("Initialising WLAN interface")
+    mode_name = ("STA", "AP")[mode]
+    _logger.debug(f"Initialising WLAN interface in {mode_name} mode")
 
     interface = network.WLAN(mode)
     interface.config(pm=pm)
@@ -495,27 +495,29 @@ class State:
 
     async def on_enter(
             self,
-            coro: Optional[Callable[[], Coroutine[Any, Any, Any]]] = None
+            coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
+            *args
         ) -> None:
         """Coroutine to run on entering state."""
         coro_name = coro.__name__ if coro else "NOP"
-        _logger.debug(f"Executing `State.on_enter` - `{coro_name}`")
+        _logger.debug(f"Executing `{self.name}.on_enter` - `{coro_name}`")
         if coro:
-            await coro()
+            await coro(*args)
 
     async def on_exit(
             self,
-            coro: Optional[Callable[[], Coroutine[Any, Any, Any]]] = None
+            coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
+            *args
         ) -> None:
         """Coroutine to run on exiting state."""
         coro_name = coro.__name__ if coro else "NOP"
-        _logger.debug(f"Executing `State.on_exit` - `{coro_name}`")
+        _logger.debug(f"Executing `{self.name}.on_exit` - `{coro_name}`")
         if coro:
-            await coro()
+            await coro(*args)
 
     async def run(self) -> None:
         """"""
-        _logger.debug("Executing `State.run`")
+        _logger.debug(f"Executing `{self.name}.run`")
         raise NotImplementedError("Missing abstract `State.run` method")
 
 
@@ -537,10 +539,9 @@ class CompositeState(State):
         return self._substate
 
     async def on_enter(self) -> None:
-        _logger.debug("Executing `CompositeState.on_enter`")
         await super().on_enter()
         if self._initial_substate_cls:
-            _logger.info("Initial `CompositeState.substate`")
+            _logger.info(f"Initial `{self.name}.change_substate`")
             await self.change_substate(
                 self._initial_substate_cls(self.machine, in_composite=True)
             )
@@ -562,7 +563,6 @@ class CompositeState(State):
 
     async def change_substate(self, new_substate: State) -> None:
         """"""
-        _logger.info("Executing `CompositeState.change_substate`")
         if isinstance(self.substate, State):
             await self.substate.on_exit()
             _logger.info(
@@ -659,11 +659,15 @@ class InactiveAPState(State):
 class ActivatingAPState(State):
     """Activate the AP interface."""
     async def run(self) -> None:
-        await activate_interface(self.machine.WLAN)
         await self.machine.transition(
             ActiveAPState(self.machine, BroadcastingState, in_composite=True),
             in_composite=True
         )
+    
+    async def on_enter(self) -> None:
+        """Runs a coroutine on state entry."""
+        await super().on_enter(activate_interface, self.machine.WLAN)
+
 
 
 class ActiveAPState(CompositeState):
@@ -912,13 +916,16 @@ class Machine:
         if in_composite and isinstance(self.current_state, CompositeState):
             # delegate transition to parent `CompositeState`
             await self.current_state.change_substate(new_state)
+            _logger.info(
+                f"{self.name}[{self.current_state.name}[{new_state.name}]]"
+            )
         else:
             _logger.info(f"{self.current_state.name} -> {new_state.name}")
             # top-level 'Atomic' `State` transition
             await self.current_state.on_exit()
             await new_state.on_enter()
             self._current_state = new_state
-            _logger.info(f"`{self.name}.current_state` is `{self.current_state.name}`")
+            _logger.info(f"{self.name}[{self.current_state.name}]")
 
     async def run(self) -> None:
         """Main execution loop."""

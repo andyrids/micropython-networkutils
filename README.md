@@ -22,8 +22,9 @@ stateDiagram-v2
     WLANModeChoiceState --> TerminalErrorState
     WLANModeChoiceState --> APModeState
     WLANModeChoiceState --> STAModeState
-    STAModeState --> ResettingState
-    APModeState --> ResettingState
+    APModeState --> TerminalErrorState
+    STAModeState --> TerminalErrorState
+    TerminalErrorState --> ResettingState
     ResettingState --> InitialisingState
 
     state APModeState {
@@ -51,9 +52,9 @@ stateDiagram-v2
         ScanningSTAState --> ConnectingSTAState
         ConnectingSTAState --> STAConnectionErrorState
         STAConnectionErrorState --> DisconnectedSTAState
-        STAConnectionErrorState --> ConnectingSTAState
+        STAConnectionErrorState --> ConnectedSTAState
         ConnectingSTAState --> ConnectedSTAState
-        ConnectedSTAState --> DisconnectedSTAState
+        ConnectedSTAState --> STAConnectionErrorState
       }
     }
   }

@@ -417,6 +417,7 @@ async def uninitialise_interface(WLAN: network.WLAN) -> None:
         await deactivate_interface(WLAN)
         WLAN.deinit()
 
+
 def get_network_interface(
         mode: int = network.AP_IF,
         pm: int = network.WLAN.PM_NONE,
@@ -1030,6 +1031,10 @@ class DeactivatingSTAState(State):
 class ResettingState(State):
     """The `WLAN` is resetting."""
 
+    async def on_enter(self) -> None:
+        """Calls `uninitialise_interface` on state entry."""
+        await super().on_enter(uninitialise_interface, self.machine.WLAN)
+
     async def run(self) -> None:
         """Transitions to `InitialisingState`."""
         await self.machine.transition(UninitialisedState(self.machine))
@@ -1052,8 +1057,8 @@ class TerminalErrorState(State):
             message: Error message detailing cause of `TerminalErrorState`
                 transition.
 
-            reset_state: A flag allowing transition to `ResettingState` if
-                True. Defaults to False.
+            reset_state: Allow transition to `ResettingState` if True.
+                Defaults to False.
         """
         super().__init__(machine)
         self._message = message
@@ -1140,13 +1145,13 @@ class WLANMachine(Machine):
     """WLAN interface Finite State Machine (FSM)."""
     def __init__(
             self,
-            wlan_mode: Optional[int] = None,
+            mode: Optional[int] = None,
             reset_state: bool = False
         ) -> None:
         """Initialises the FSM.
         
         Args:
-            wlan_mode: Specifies which mode to initialise the WLAN interface,
+            mode: Specifies which mode to initialise the WLAN interface,
                 STA (0) or AP (1). Defaults to None.
 
             reset_state: Causes a reset to Access Point mode, if the
@@ -1154,7 +1159,10 @@ class WLANMachine(Machine):
         """
         super().__init__(current_state=UninitialisedState(self))
         self._WLAN = None
-        self._WLAN_MODE = wlan_mode in (network.STA_IF, network.AP_IF) or None
+        if mode is not None and network.STA_IF <= mode <= network.AP_IF:
+            self._WLAN_MODE = mode
+        else:
+            self._WLAN_MODE = None
         self._reset_state = reset_state
 
         env = NetworkEnv()
@@ -1242,7 +1250,7 @@ async def main() -> None:
     env.putenv(NetworkEnv.WLAN_SSID, "S23")
     env.putenv(NetworkEnv.WLAN_PASSWORD, "q5fgITAC")
 
-    fsm = WLANMachine()
+    fsm = WLANMachine(mode=network.STA_IF, reset_state=True)
     fsm.start()
 
     while True:

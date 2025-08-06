@@ -17,15 +17,15 @@ stateDiagram-v2
     [*] --> UninitialisedState
     state WLANModeChoiceState <<choice>>
 
-    UninitialisedState --> InitialisingState
-    InitialisingState --> WLANModeChoiceState
+    UninitialisedState --> WLANModeChoiceState
     WLANModeChoiceState --> TerminalErrorState
-    WLANModeChoiceState --> APModeState
-    WLANModeChoiceState --> STAModeState
+    WLANModeChoiceState --> InitialisingState
+    InitialisingState --> APModeState
+    InitialisingState --> STAModeState
     APModeState --> TerminalErrorState
     STAModeState --> TerminalErrorState
     TerminalErrorState --> ResettingState
-    ResettingState --> InitialisingState
+    ResettingState --> UninitialisedState
 
     state APModeState {
       direction TB

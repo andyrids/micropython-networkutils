@@ -53,7 +53,6 @@ import logging
 import machine
 import network
 import sys
-import time
 from typing import Any, Awaitable, Callable, Coroutine, Iterable, Optional, Union
 
 
@@ -202,6 +201,12 @@ class WLANCredentialsError(Exception):
 
 class WLANConnectionError(Exception):
     """Raised on failed WLAN connection."""
+
+    pass
+
+
+class WLANInitialisationError(Exception):
+    """Raised on incorrect WLAN mode."""
 
     pass
 
@@ -385,9 +390,6 @@ async def deactivate_interface(WLAN: network.WLAN) -> None:
 
     Args:
         WLAN: WLAN interface instance.
-
-    Returns:
-        None.
     """
     _logger.debug("Deactivating network interface")
     WLAN.active(False)
@@ -402,6 +404,18 @@ async def deactivate_interface(WLAN: network.WLAN) -> None:
     except StopIteration:
         _logger.debug("Deactivate network interface timeout")
 
+
+async def uninitialise_interface(WLAN: network.WLAN) -> None:
+    """Uninitialise a WLAN interface.
+    
+    Args:
+        WLAN: WLAN interface instance.
+    """
+    _logger.debug("Unitialising network interface")
+    if isinstance(WLAN, network.WLAN):
+        WLAN.disconnect()
+        await deactivate_interface(WLAN)
+        WLAN.deinit()
 
 def get_network_interface(
         mode: int = network.AP_IF,
@@ -658,14 +672,6 @@ class CompositeState(State):
 class UninitialisedState(State):
     """The `WLAN` interface is not initialised."""
     async def run(self) -> None:
-        """Transitions to `InitialisingState`."""
-        # `UninitialisedState` -> `InitialisingState`
-        await self.machine.transition(InitialisingState(self.machine))
-
-
-class InitialisingState(State):
-    """The `WLAN` interface is initialising in AP | STA mode."""
-    async def run(self) -> None:
         """Transitions to `WLANModeChoiceState`."""
         try:
             # transition to WLAN mode selection
@@ -673,8 +679,7 @@ class InitialisingState(State):
         except OSError as e:
             await self.machine.transition(
                 TerminalErrorState(
-                    self.machine,
-                    f"Error transitioning -> WLANModeChoiceState ({e})"
+                    self.machine, f"Error in `WLANModeChoiceState` ({e})"
                 )
             )
 
@@ -682,37 +687,79 @@ class InitialisingState(State):
 class WLANModeChoiceState(State):
     """Transient choice state for `WLAN` initialisation mode (AP | STA).
     
-    The WLAN interface mode is based on the `NetworkEnv` environment
-    variables - STA if `WLAN_SSID` is set, else AP. `AP_SSID` defaults
-    to 'DEVICE-[Microcontroller device ID]' and `AP_PASSWORD` defaults
-    to [Microcontroller device ID] if not set.
+    The WLAN interface mode is based on the `machine.WLAN_MODE` value,
+    if set, or the `NetworkEnv` environment variables. STA mode is
+    selected if `WLAN_SSID` is set, else AP. `AP_SSID` defaults to
+    'DEVICE-[Microcontroller ID]' and `AP_PASSWORD` defaults to
+    [Microcontroller ID] if not set.
     """
     async def run(self) -> None:
         """Transitions to `APModeState` | `STAModeState`."""
+
+        MODE = self.machine.WLAN_MODE
+        if MODE is None or not network.STA_IF <= MODE <= network.AP_IF:
+            env = NetworkEnv()
+            WLAN_SSID = env.getenv(NetworkEnv.WLAN_SSID)
+            # select WLAN instance mode based on credential values
+            if WLAN_SSID is None or len(WLAN_SSID) < 1:
+                MODE = network.AP_IF
+            else:
+                MODE = network.STA_IF
+
+        await self.machine.transition(
+            InitialisingState(self.machine, wlan_mode=MODE)
+        )
+
+
+class InitialisingState(State):
+    """The `WLAN` interface is initialising in AP | STA mode."""
+
+    def __init__(
+            self,
+            machine: "Machine",
+            in_composite: bool = False,
+            *,
+            wlan_mode: int
+        ) -> None:
+        """Initialises the `InitialisingState` class.
+
+        Args:
+            machine: A Concrete `Machine` instance that manages the
+                `State`.
+
+            in_composite: Within a `CompositeState` hierarchy flag. Defaults
+                to False.
+
+            wlan_mode: WLAN mode to initialise the interface in, 
+                either STA (0) | AP (1).
+
+        Raises:
+            WLANInitialisationError: If `wlan_mode` is not valid.
+        """
+        super().__init__(machine, in_composite)
+        if not network.STA_IF <= wlan_mode <= network.AP_IF:
+            raise WLANInitialisationError
+
+        self.machine._WLAN = get_network_interface(wlan_mode)
+        self.machine._WLAN_MODE = wlan_mode
+
         env = NetworkEnv()
-        AP_SSID = env.getenv("AP_SSID")
-        AP_PASSWORD = env.getenv("AP_PASSWORD")
+        self.machine.WLAN.config(
+            ssid=env.getenv(env.AP_SSID),
+            password=env.getenv(env.AP_PASSWORD)
+        )
 
-        if AP_SSID is None or AP_PASSWORD is None:
-            AP_SSID = f"DEVICE-{_DEVICE_ID}"
-            AP_PASSWORD = _DEVICE_ID
-            env.putenv("AP_SSID", AP_SSID)
-            env.putenv("AP_PASSWORD", _DEVICE_ID)
+    async def run(self) -> None:
+        """Transitions to `WLANModeChoiceState`."""
 
-        WLAN_SSID = env.getenv("WLAN_SSID")
-        # select WLAN instance mode based on credential values
-        if WLAN_SSID is None or len(WLAN_SSID) < 1:
-            self.machine._WLAN = get_network_interface(network.AP_IF)
-            self.machine.WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)
-            await self.machine.transition(
-                APModeState(self.machine, InactiveAPState)
-            )
-        else:
-            self.machine._WLAN = get_network_interface(network.STA_IF)
+        if self.machine.WLAN_MODE == network.STA_IF:
             await self.machine.transition(
                 STAModeState(self.machine, InactiveSTAState)
             )
-
+        else:
+            await self.machine.transition(
+                    APModeState(self.machine, InactiveAPState)
+                )
 
 # ------ AP Mode Composite State Classes ------ #
 
@@ -985,7 +1032,7 @@ class ResettingState(State):
 
     async def run(self) -> None:
         """Transitions to `InitialisingState`."""
-        await self.machine.transition(InitialisingState(self.machine))
+        await self.machine.transition(UninitialisedState(self.machine))
 
 
 class TerminalErrorState(State):
@@ -994,7 +1041,7 @@ class TerminalErrorState(State):
     def __init__(
             self, machine: "Machine",
             message: str,
-            access_point_reset: bool = False
+            reset_state: bool = False
         ) -> None:
         """Initialises `TerminalErrorState`.
 
@@ -1002,20 +1049,24 @@ class TerminalErrorState(State):
             machine: A Concrete `Machine` instance that manages the
                 `State`.
 
-            message: An error message.
+            message: Error message detailing cause of `TerminalErrorState`
+                transition.
+
+            reset_state: A flag allowing transition to `ResettingState` if
+                True. Defaults to False.
         """
         super().__init__(machine)
         self._message = message
-        self._access_point_reset = access_point_reset
+        self._reset_state = reset_state
     
     @property
-    def access_point_reset(self) -> bool:
-        """Access Point mode reset flag."""
-        return self._access_point_reset
+    def reset_state(self) -> bool:
+        """Transition to `ResettingState` flag."""
+        return self._reset_state
 
     @property
     def message(self) -> str:
-        """Terminal error message."""
+        """Terminal error details message."""
         return self._message
 
     async def run(self) -> None:
@@ -1089,18 +1140,29 @@ class WLANMachine(Machine):
     """WLAN interface Finite State Machine (FSM)."""
     def __init__(
             self,
-            access_point_reset: bool = False
+            wlan_mode: Optional[int] = None,
+            reset_state: bool = False
         ) -> None:
-        """Initialise FSM.
+        """Initialises the FSM.
         
         Args:
-            access_point_reset: Causes a reset to Access Point mode, if the
+            wlan_mode: Specifies which mode to initialise the WLAN interface,
+                STA (0) or AP (1). Defaults to None.
+
+            reset_state: Causes a reset to Access Point mode, if the
                 FSM transitions from `STAModeState` -> `TerminalErrorState`.
         """
         super().__init__(current_state=UninitialisedState(self))
         self._WLAN = None
-        self._WLAN_MODE = None
-        self._access_point_reset = access_point_reset
+        self._WLAN_MODE = wlan_mode in (network.STA_IF, network.AP_IF) or None
+        self._reset_state = reset_state
+
+        env = NetworkEnv()
+        AP_SSID = env.getenv(NetworkEnv.AP_SSID)
+        AP_PASSWORD = env.getenv(NetworkEnv.AP_PASSWORD)
+        if AP_SSID is None or AP_PASSWORD is None:
+            env.putenv(NetworkEnv.AP_SSID, f"DEVICE-{_DEVICE_ID}")
+            env.putenv(NetworkEnv.AP_PASSWORD, _DEVICE_ID)
 
     # --- Public API --- #
 
@@ -1128,9 +1190,14 @@ class WLANMachine(Machine):
         raise TypeError("`_WLAN` not set to a `network.WLAN` instance")
 
     @property
-    def access_point_reset(self) -> bool:
+    def WLAN_MODE(self) -> Union[int, None]:
+        """WLAN mode value network.STA_IF (0) |`network.AP_IF` (1)."""
+        return self._WLAN_MODE
+
+    @property
+    def reset_state(self) -> bool:
         """Access Point mode reset flag."""
-        return self._access_point_reset
+        return self._reset_state
 
     async def handle_exceptions(
             self, coro: Callable[[], Coroutine[Any, Any, Any]]
@@ -1145,19 +1212,19 @@ class WLANMachine(Machine):
         except (WLANConnectionError, NetworkModeError) as e:
             exception_cls = e.__class__.__name__
             _logger.error(f"Caught `{exception_cls}`")
+
+            self._WLAN_MODE = network.AP_IF
             await self.transition(
-                TerminalErrorState(
-                    self, exception_cls, self.access_point_reset
-                )
+                TerminalErrorState(self, exception_cls, self.reset_state)
             )
         except WLANCredentialsError as e:
             exception_cls = e.__class__.__name__
             _logger.error(f"Caught `{exception_cls}`")
             _logger.error("Check `NetworkEnv` `$WLAN_PASSWORD` value")
+
+            self._WLAN_MODE = network.AP_IF
             await self.transition(
-                TerminalErrorState(
-                    self, exception_cls, self.access_point_reset
-                )
+                TerminalErrorState(self, exception_cls, self.reset_state)
             )
         except Exception as e:
             _logger.error(f"`{e.__class__.__name__}`")

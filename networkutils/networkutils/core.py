@@ -1253,16 +1253,16 @@ async def main() -> None:
         await asyncio.sleep(1)
 
 
-try:
-    _logger.info("Executing `main`")
-    asyncio.run(main())
-except KeyboardInterrupt:
-    _logger.info("Caught `KeyboardInterrupt`")
-except SystemExit:
-    _logger.info("Caught `SystemExit`")
-finally:
-    _logger.info("Cleaning asyncio `AbstractEventLoop`")
-    # clean up asyncio `AbstractEventLoop`
-    asyncio.get_event_loop().close()
-    # reset MicroPython's single event loop state
-    asyncio.new_event_loop()
+# try:
+#     _logger.info("Executing `main`")
+#     asyncio.run(main())
+# except KeyboardInterrupt:
+#     _logger.info("Caught `KeyboardInterrupt`")
+# except SystemExit:
+#     _logger.info("Caught `SystemExit`")
+# finally:
+#     _logger.info("Cleaning asyncio `AbstractEventLoop`")
+#     # clean up asyncio `AbstractEventLoop`
+#     asyncio.get_event_loop().close()
+#     # reset MicroPython's single event loop state
+#     asyncio.new_event_loop()

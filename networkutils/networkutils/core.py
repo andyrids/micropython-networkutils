@@ -22,29 +22,6 @@ Author: Andrew Ridyard.
 License: GNU General Public License v3 or later.
 
 Copyright (C): 2025.
-
-Exceptions:
-    WLANConnectionError: Raised on failed WLAN connection.
-
-    WLANTimeoutError: Raised on WLAN connection timeout.
-
-Functions:
-    async access_point_reset: Reset a WLAN instance and restart in Access
-        Point (AP) mode.
-
-    async activate_interface: Activate WLAN interface and wait 5 seconds for
-        initialisation.
-
-    async connect_interface: Connect a WLAN interface in STA mode.
-
-    connection_issue: Test for a connection issue.
-
-    async deactivate_interface: Deactivate a WLAN interface.
-
-    get_network_interface: Initialise & return a `network.WLAN`
-        interface instance.
-
-    network_status_message: Print WLAN status debug messages.
 """
 
 import asyncio
@@ -53,7 +30,7 @@ import logging
 import machine
 import network
 import sys
-from typing import Any, Awaitable, Callable, Coroutine, Iterable, Optional, Union
+from typing import Any, Callable, Coroutine, Iterable, Optional, Union
 
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
@@ -186,6 +163,7 @@ class NetworkEnv:
         """
         if self.getenv(key):
             del self._env[key]
+
 
 class NetworkModeError(Exception):
     """Raised on incorrect network interface ID."""
@@ -911,7 +889,7 @@ class ScanningSTAState(State):
                 ConnectingSTAState(self.machine, in_composite=True)
             )
         else:
-            raise WLANConnectionError
+            raise WLANNotFoundError
 
 
 class ConnectingSTAState(State):
@@ -1075,14 +1053,19 @@ class TerminalErrorState(State):
         return self._message
 
     async def run(self) -> None:
-        """Terminates FSM main loop or transitions to `ResettingState`."""
+        """Terminates FSM main loop or transitions to `ResettingState`.
+
+        Raises:
+            SystemExit: If `reset_state` flag is not set.
+        """
         _logger.info(f"Terminal error - {self.message}")
+        _logger.info("Sleeping for 5 seconds")
         await asyncio.sleep(5)
-        if self.access_point_reset:
-            env = NetworkEnv()
-            env.delenv(NetworkEnv.WLAN_SSID)
-            env.delenv(NetworkEnv.WLAN_PASSWORD)
+        if self.reset_state:
+            _logger.info("`reset_state` flag set - resetting FSM")
             await self.machine.transition(ResettingState(self.machine))
+        _logger.info("`reset_state` flag not set - terminating FSM")
+        raise SystemExit
 
 
 # ------ Finite State Machine Classes ------ #
@@ -1210,38 +1193,51 @@ class WLANMachine(Machine):
     async def handle_exceptions(
             self, coro: Callable[[], Coroutine[Any, Any, Any]]
         ) -> None:
-        """Handle WLAN-related exceptions in `run` coroutine.
+        """Handles WLAN-related exceptions in `WLANMachine.run` coroutine.
         
-        Facilitates transitions based on exceptions and avoids having to
+        Facilitates FSM reset or exit based on exceptions and avoids having to
         listen for `asyncio.Event` instances being set.
+
+        Raises:
+            SystemExit: On `await coro()` completion or unknown `Exception`.
         """
-        try:
-            await coro()
-        except (WLANConnectionError, NetworkModeError) as e:
-            exception_cls = e.__class__.__name__
-            _logger.error(f"Caught `{exception_cls}`")
+        while True:
+            try:
+                await coro()
+                raise SystemExit
+            except (WLANConnectionError, NetworkModeError) as e:
+                exception_cls = e.__class__.__name__
+                _logger.error(f"Caught `{exception_cls}`")
 
-            self._WLAN_MODE = network.AP_IF
-            await self.transition(
-                TerminalErrorState(self, exception_cls, self.reset_state)
-            )
-        except WLANCredentialsError as e:
-            exception_cls = e.__class__.__name__
-            _logger.error(f"Caught `{exception_cls}`")
-            _logger.error("Check `NetworkEnv` `$WLAN_PASSWORD` value")
+                self._WLAN_MODE = network.AP_IF
+                await self.transition(
+                    TerminalErrorState(self, exception_cls, self.reset_state)
+                )
+            except WLANNotFoundError as e:
+                e_cls = e.__class__.__name__
+                _logger.error(f"Caught `{e_cls}`")
+                _logger.error("Check `NetworkEnv` `$WLAN_SSID` value")
 
-            self._WLAN_MODE = network.AP_IF
-            await self.transition(
-                TerminalErrorState(self, exception_cls, self.reset_state)
-            )
-        except Exception as e:
-            _logger.error(f"`{e.__class__.__name__}`")
-        finally:
-            _logger.info("`WLANMachine.handle_exceptions` cleanup")
-            _logger.info("Executing 'WLAN.disconnect` & `WLAN.deinit`")
-            self.WLAN.disconnect()
-            self.WLAN.deinit()
-            raise SystemExit
+                self._WLAN_MODE = network.AP_IF
+                await self.transition(
+                    TerminalErrorState(self, e_cls, self.reset_state)
+                )
+            except WLANCredentialsError as e:
+                e_cls = e.__class__.__name__
+                _logger.error(f"Caught `{e_cls}`")
+                _logger.error("Check `NetworkEnv` `$WLAN_PASSWORD` value")
+
+                self._WLAN_MODE = network.AP_IF
+                await self.transition(
+                    TerminalErrorState(self, e_cls, self.reset_state)
+                )
+            except (Exception, SystemExit) as e:
+                _logger.error(f"`{e.__class__.__name__}`")
+                _logger.info("`WLANMachine.handle_exceptions` cleanup")
+                _logger.info("Executing 'uninitialise_interface`")
+                await uninitialise_interface(self.WLAN)
+                raise SystemExit from e
+
 
 
 async def main() -> None:

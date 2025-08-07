@@ -103,7 +103,7 @@ def test_package_installation(
         try:
             mip._install_package(
                 serial_connection,
-                "github:andyrids/micropython-networkutils/networkutils/",
+                "github:andyrids/micropython-networkutils/networkutils/@develop",
                 "https://micropython.org/pi/v2",
                 "lib",
                 "main",
@@ -164,13 +164,7 @@ def test_network_interface_ap(
         out = serial_connection.exec("print(repr(env._env))")
         assert literal_eval(out.decode().strip()) == ENV
 
-        # WLAN_MODE should be WLAN.AP_IF (1)
-        serial_connection.exec(
-            "WLAN, WLAN_MODE = get_network_interface(debug=True)"
-        )
-
-        out = serial_connection.exec("print(WLAN_MODE)")
-        assert int(out.decode().strip()) == 1
+        serial_connection.exec("WLAN = get_network_interface(mode=1)")
 
         out = serial_connection.exec("print(WLAN.active())")
         assert literal_eval(out.decode().strip()) is True

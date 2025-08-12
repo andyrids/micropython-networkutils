@@ -1,17 +1,11 @@
 # sourcery skip: use-contextlib-suppress
 # pyright: reportMissingImports=false, reportAttributeAccessIssue=false
-"""A MicroPython `network` module utility functions package.
+"""A MicroPython `network` utility functions module.
 
-This `network-utils` package contains utility functions that help implement
+The `networkutils` package contains utility functions that help implement
 concrete network classes within the MicroPython `network` module, such as the
 `network.WLAN` class. These functions utilise `asyncio` to enable asynchronous
 programming.
-
-The package has been designed to allow for future extensions:
-
-- `network-utils` (WIP)
-- `network-utils-mqtt` (TODO)
-- `network-utils-microdot` (TODO)
 
 This package uses static typing, which is enabled by the package dependencies.
 On installation, the cross-compiled `typing.mpy` & `typing_extensions.mpy`
@@ -42,67 +36,6 @@ _stream_handler.setFormatter(_formatter)
 _logger = logging.getLogger(__name__)
 _logger.addHandler(_stream_handler)
 _logger.setLevel(logging.DEBUG)
-
-
-class WaitAny:
-    """Event-like class that waits on an iterable of Event-like instances."""
-    def __init__(self, events: tuple[asyncio.Event]) -> None:
-        """Initialises the class with `Event` instances to wait for.
-
-        Args:
-            events (tuple[asyncio.Event]): `Event` instances to wait for.
-        """
-        self._any_event = asyncio.Event()
-        self._events = events
-        
-    async def wait(self) -> asyncio.Event:
-        """Await the setting of a trigger `Event` by any coroutine.
-
-        Returns:
-           asyncio.Event: The `Event` instance that set the trigger `Event`. 
-        """
-        tasks = map(self.create_task, self._events)
-        try:
-            # wait for any task to set this event
-            await self.any_event.wait()
-        finally:
-            self.any_event.clear()
-            cancelled = self.cancel_tasks(tasks)
-        # a value of False indicates the task had completed
-        return self._events[cancelled.index(False)]
-        
-    async def wait_any(self, event: asyncio.Event) -> Union[asyncio.Event, None]:
-        """Awaits the passed `Event` & sets an `Event` trigger.
-
-        Args:
-            event (asyncio.Event): The `Event` instance to await.
-        """
-        await event.wait()
-        self.event_trigger.set()
-
-    @property
-    def any_event(self) -> asyncio.Event:
-        """Property for main `WaitAny` `Event` instance."""
-        return self._any_event
-
-    def cancel_tasks(self, tasks: Iterable[asyncio.Task]) -> tuple[bool, ...]:
-        """Cancels `Task` instances.
-
-        The `cancel` method returns True for those that were in-progress and
-        False for those that were already completed.
-
-        Args:
-            tasks (Iterable[asyncio.Task]): `Task` instances to cancel.
-
-        Returns:
-            tuple[bool, ...]: The result of each called `cancel` method.
-        """
-        # in-progress & cancelled is True, finished & cancelled is False
-        return tuple(map(lambda task: task.cancel(), tasks))
-
-    def create_task(self, event: asyncio.Event) -> asyncio.Task:
-        """Create a `Task` that awaits the passed `Event`."""
-        return asyncio.create_task(self.wait_any(event))
 
 
 class NetworkEnv:
@@ -308,6 +241,10 @@ async def connect_interface(WLAN: network.WLAN) -> None:
         WLAN_SSID = env.getenv("WLAN_SSID")
         WLAN_PASSWORD = env.getenv("WLAN_PASSWORD")
 
+        if WLAN_SSID is None:
+            _logger.error("`$WLAN_SSID` not set in `NetworkEnv`")
+            raise WLANConnectionError
+
         if WLAN_PASSWORD is None:
             _logger.warning("`$WLAN_PASSWORD` not set in `NetworkEnv`")
 
@@ -323,10 +260,11 @@ async def connect_interface(WLAN: network.WLAN) -> None:
         _logger.debug("Waiting for WLAN connection")
         await_timeout = iter(range(30))
         while next(await_timeout) >= 0:
-            _logger.debug(f"WLAN status code: {WLAN.status()}")
-            if WLAN.status() < network.STAT_IDLE:
+            wlan_status = WLAN.status()
+            _logger.debug(f"WLAN status code: {wlan_status}")
+            if wlan_status < network.STAT_IDLE:
                 raise WLANConnectionError
-            if (WLAN.status == network.STAT_GOT_IP) or WLAN.isconnected():
+            if (wlan_status == network.STAT_GOT_IP) or WLAN.isconnected():
                 break
             await asyncio.sleep(1)
     except StopIteration as e:
@@ -468,7 +406,12 @@ def network_status_message(WLAN: network.WLAN, mode: int) -> str:
         """
 
 
+# ------------------------------------------------------- #
 # ------ Hierarchical Finite State Machine Classes ------ #
+# ------------------------------------------------------- #
+
+
+# ------ State Abstract Base Classes ------ #
 
 class State:
     """Base class for individual atomic states."""
@@ -646,7 +589,7 @@ class CompositeState(State):
         self._substate = new_substate
 
 
-# ------ State Classes ------ #
+# ------ Top Level Atomic State Classes ------ #
 
 class UninitialisedState(State):
     """The `WLAN` interface is not initialised."""
@@ -740,7 +683,70 @@ class InitialisingState(State):
                     APModeState(self.machine, InactiveAPState)
                 )
 
-# ------ AP Mode Composite State Classes ------ #
+
+class ResettingState(State):
+    """The `WLAN` is resetting."""
+
+    async def on_enter(self) -> None:
+        """Calls `uninitialise_interface` on state entry."""
+        await super().on_enter(uninitialise_interface, self.machine.WLAN)
+
+    async def run(self) -> None:
+        """Transitions to `InitialisingState`."""
+        await self.machine.transition(UninitialisedState(self.machine))
+
+
+class TerminalErrorState(State):
+    """The `WLAN` is in a terminal error state."""
+
+    def __init__(
+            self, machine: "Machine",
+            message: str,
+            reset_state: bool = False
+        ) -> None:
+        """Initialises `TerminalErrorState`.
+
+        Args:
+            machine: A Concrete `Machine` instance that manages the
+                `State`.
+
+            message: Error message detailing cause of `TerminalErrorState`
+                transition.
+
+            reset_state: Allow transition to `ResettingState` if True.
+                Defaults to False.
+        """
+        super().__init__(machine)
+        self._message = message
+        self._reset_state = reset_state
+    
+    @property
+    def reset_state(self) -> bool:
+        """Transition to `ResettingState` flag."""
+        return self._reset_state
+
+    @property
+    def message(self) -> str:
+        """Terminal error details message."""
+        return self._message
+
+    async def run(self) -> None:
+        """Terminates FSM main loop or transitions to `ResettingState`.
+
+        Raises:
+            SystemExit: If `reset_state` flag is not set.
+        """
+        _logger.info(f"Terminal error - {self.message}")
+        _logger.info("Sleeping for 5 seconds")
+        await asyncio.sleep(5)
+        if self.reset_state:
+            _logger.info("`reset_state` flag set - resetting FSM")
+            await self.machine.transition(ResettingState(self.machine))
+        _logger.info("`reset_state` flag not set - terminating FSM")
+        raise SystemExit
+
+
+# ------ AP Mode State Classes ------ #
 
 class APModeState(CompositeState):
     """Container `CompositeState` for each AP mode `State`.
@@ -813,7 +819,7 @@ class DeactivatingAPState(State):
         )
 
 
-# ------ STAModeState Composite State ------ #
+# ------ STA Mode State Classes ------ #
 
 class STAModeState(CompositeState):
     """Container `CompositeState` for each STA mode `State`.
@@ -868,6 +874,7 @@ class ActiveSTAState(CompositeState):
     ├── ConnectedSTAState
     └── STAConnectionErrorState
     """
+
 
 class DisconnectedSTAState(State):
     """The `WLAN` STA is not connected to an Access Point."""
@@ -1003,73 +1010,7 @@ class DeactivatingSTAState(State):
         )
 
 
-# ------------------------------------------ #
-
-
-class ResettingState(State):
-    """The `WLAN` is resetting."""
-
-    async def on_enter(self) -> None:
-        """Calls `uninitialise_interface` on state entry."""
-        await super().on_enter(uninitialise_interface, self.machine.WLAN)
-
-    async def run(self) -> None:
-        """Transitions to `InitialisingState`."""
-        await self.machine.transition(UninitialisedState(self.machine))
-
-
-class TerminalErrorState(State):
-    """The `WLAN` is in a terminal error state."""
-
-    def __init__(
-            self, machine: "Machine",
-            message: str,
-            reset_state: bool = False
-        ) -> None:
-        """Initialises `TerminalErrorState`.
-
-        Args:
-            machine: A Concrete `Machine` instance that manages the
-                `State`.
-
-            message: Error message detailing cause of `TerminalErrorState`
-                transition.
-
-            reset_state: Allow transition to `ResettingState` if True.
-                Defaults to False.
-        """
-        super().__init__(machine)
-        self._message = message
-        self._reset_state = reset_state
-    
-    @property
-    def reset_state(self) -> bool:
-        """Transition to `ResettingState` flag."""
-        return self._reset_state
-
-    @property
-    def message(self) -> str:
-        """Terminal error details message."""
-        return self._message
-
-    async def run(self) -> None:
-        """Terminates FSM main loop or transitions to `ResettingState`.
-
-        Raises:
-            SystemExit: If `reset_state` flag is not set.
-        """
-        _logger.info(f"Terminal error - {self.message}")
-        _logger.info("Sleeping for 5 seconds")
-        await asyncio.sleep(5)
-        if self.reset_state:
-            _logger.info("`reset_state` flag set - resetting FSM")
-            await self.machine.transition(ResettingState(self.machine))
-        _logger.info("`reset_state` flag not set - terminating FSM")
-        raise SystemExit
-
-
 # ------ Finite State Machine Classes ------ #
-
 
 class Machine:
     """Abstract base class for individual State Machines."""
@@ -1237,7 +1178,6 @@ class WLANMachine(Machine):
                 _logger.info("Executing 'uninitialise_interface`")
                 await uninitialise_interface(self.WLAN)
                 raise SystemExit from e
-
 
 
 async def main() -> None:

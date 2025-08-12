@@ -2,11 +2,12 @@
 """
 import asyncio
 import logging
+import network
 from networkutils.core import WLANMachine, _logger
 
 async def main() -> None:
-    """Main coroutine to start the WLAN interface FSM."""
-    fsm = WLANMachine()
+    """Runs FSM main coroutine."""
+    fsm = WLANMachine(mode=network.AP_IF, reset_state=False)
     fsm.start()
 
     while True:

@@ -59,7 +59,8 @@ async def test_get_network_interface_debug_mode(
     # `_logger` instance from `networkutils.core` is what we need to check
     # in `conftest`, `logging.getLogger` returns `mock_logger_instance`
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
-        await get_network_interface(debug=True)
+        _logger.setLevel(logging.DEBUG)
+        get_network_interface()
 
     # `networkutils.core._logger` is `logging.getLogger("networkutils.core")`
     # default level is `logging.ERROR`, expecting `logging.DEBUG`

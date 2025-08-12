@@ -170,6 +170,8 @@ async def test_connect_interface_success(
         mock_network_module.STAT_GOT_IP,
     )
 
+    mock_wlan_instance.isconnected.side_effect = (False, False, True)
+
     with caplog.at_level(logging.DEBUG, logger="networkutils.core"):
         await connect_interface(mock_wlan_instance)
 

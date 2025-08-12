@@ -1,5 +1,4 @@
-"""_summary_
-"""
+"""Async AP mode state machine example."""
 import asyncio
 import logging
 import network

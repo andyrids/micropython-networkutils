@@ -60,6 +60,7 @@ select = [
     "E",   # pycodestyle
     "ERA", # commented out code
     "W",   # pycodestyle
+    "C90", # McCabe complexity
 ]
 
 [tool.ruff.lint.pydocstyle]

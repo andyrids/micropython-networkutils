@@ -1,5 +1,4 @@
-"""_summary_
-"""
+"""`networkutils` __init__."""
 
 from .core import (
     NetworkEnv,

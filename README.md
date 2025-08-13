@@ -1,13 +1,15 @@
 # MicroPython Package - `networkutils`
 
+The `networkutils` MicroPython package provides utility functions related to the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library package, which manage connections through the `network.WLAN` interface.
+
 > [!NOTE]
 > The main repo is @ [GitLab](https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils) and is mirrored @ [GitHub](https://github.com/andyrids/micropython-networkutils).
 
-This is a repository for the `networkutils` MicroPython package, which contains utility functions related to the [`network`](https://docs.micropython.org/en/latest/library/network.html#module-network) standard library and external packages @ [`micropython-lib`](https://github.com/micropython/micropython-lib).
+## Key Features
 
 * Uses network environment variable class for credential configuration in client (STA) & access point (AP) modes.
-* Uses `asyncio` functionality for utility functions and classes.
-* Provides functions for basic interface setup & connection.
+* Uses asynchronous programming with [`asyncio`](https://github.com/peterhinch/micropython-async/blob/master/v3/docs/TUTORIAL.md).
+* Provides functions for managing WLAN interface setup & connections.
 * Provides a hierarchical finite state machine (HFSM) to manage interface & connections.
 
 ```mermaid
@@ -26,6 +28,7 @@ stateDiagram-v2
     APModeState --> TerminalErrorState
     STAModeState --> TerminalErrorState
     TerminalErrorState --> ResettingState
+    TerminalErrorState --> [*]
     ResettingState --> UninitialisedState
 
     state APModeState {
@@ -88,7 +91,9 @@ micropython-networkutils
 │       └── test_network_interface_complex.py
 │       
 ├── examples               <-- Examples using networkutils
-│   └── access_point.py
+│   ├── ap_hfsm.py
+│   ├── ap_mode.py
+│   └── sta_mode.py
 │
 ├── package.json           <-- Package URLs & dependencies (for `mip install`)
 ├── pyproject.toml         <-- Root `pyproject.toml` enables local package setup/installation
@@ -142,7 +147,7 @@ mpremote exec --no-follow "import os, machine, rp2; os.umount('/'); bdev = rp2.F
 The following commands will install `networkutils` on your device using the `mpremote` Python package. Note that the `package.json` is optional as `mip` will add it, if the URL ends without a `.mpy`, `.py` or `.json` extension.
 
 ```sh
-mpremote mip install github:andyrids/micropython-networkutils/networkutils
+mpremote mip install github:andyrids/micropython-networkutils/
 ```
 
 ## Example Usage
@@ -157,31 +162,74 @@ Environment variables:
 * `NetworkEnv.AP_PASSWORD` ('AP_PASSWORD') - Your device network password (AP mode)
 
 ```python
+import asyncio
 import logging
 import network
-from networkutils import NetworkEnv, activate_interface, get_network_interface, _logger
-from networkutils.core import WLANConnectionError, WLANCredentialsError, WLANNotFoundError
+from networkutils import (
+    NetworkEnv,
+    activate_interface,
+    connect_interface,
+    get_network_interface,
+)
+from networkutils.core import (
+    WLANConnectionError,
+    WLANCredentialsError,
+    WLANNotFoundError,
+    _logger,
+)
 
 
-# set logging level for verbose debug messages
-_logger.setLevel(logging.DEBUG)
+async def main() -> None:
+    """Initialises, activates & connects a WLAN to an access point."""
+    # get initialised WLAN interface in STA mode & activate
+    WLAN = get_network_interface(mode=network.STA_IF)
+    await activate_interface(WLAN)
 
-# set environment variables
-env = NetworkEnv()
-env.putenv(NetworkEnv.WLAN_SSID, "<YOUR_SSID>")
-env.putenv(NetworkEnv.WLAN_PASSWORD, "<YOUR_PASSWORD>")
+    try:
+        # attempt connection to access point
+        await connect_interface(WLAN)
+    except WLANConnectionError:
+        _logger.error("Failed connection to access point")
+    except WLANCredentialsError:
+        _logger.error("Incorrect credentials for access point")
+    except WLANNotFoundError:
+        _logger.error("Access point not found in available networks")
 
-# get initialised WLAN interface in STA mode & activate
-WLAN = get_network_interface(mode=network.STA_IF)
-activate_interface(WLAN)
+    if WLAN.isconnected():
+        _logger.info("Connected to access point")
+
+    while True:
+        await asyncio.sleep(1)
+
 
 try:
-    # attempt connection to access point
-    connect_interface(WLAN)
-except WLANConnectionError:
-    _logger.error("Failed connection to access point")
-except WLANCredentialsError:
-    _logger.error("Incorrect credentials for access point")
-except WLANNotFoundError:
-    _logger.error("Access point not found in available networks")
+    # set logging level for verbose debug messages
+    _logger.setLevel(logging.DEBUG)
+
+    # set environment variables
+    env = NetworkEnv()
+    env.putenv(NetworkEnv.WLAN_SSID, "<YOUR_SSID>")
+    env.putenv(NetworkEnv.WLAN_PASSWORD, "<YOUR_PASSWORD>")
+
+    _logger.info("Executing `main` coroutine")
+    asyncio.run(main())
+except KeyboardInterrupt:
+    _logger.error("Caught `KeyboardInterrupt`")
+finally:
+    _logger.info("Cleaning asyncio `AbstractEventLoop`")
+    # clean up asyncio `AbstractEventLoop`
+    asyncio.get_event_loop().close()
+    asyncio.new_event_loop()
+```
+
+After cloning the repository, syncing the pyproject.toml with uv and installing `networkutils` on your device, you can also run the examples with `mpremote`.
+
+```sh
+mpremote run examples/access_point.py 
+```
+
+To stop running the app and clear the event loop, connect to the device with `mpremote` and press `control + c`.
+
+```sh
+mpremote
 ```

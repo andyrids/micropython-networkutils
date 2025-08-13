@@ -91,7 +91,7 @@ def test_enter_raw_repl(serial_connection: SerialTransport) -> None:
     time.sleep(1)
     assert serial_connection.in_raw_repl
 
-@pytest.mark.skip(reason="Skipping package installation test temporarily")
+
 def test_package_installation(
     serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -103,7 +103,7 @@ def test_package_installation(
         try:
             mip._install_package(
                 serial_connection,
-                "github:andyrids/micropython-networkutils/networkutils/@develop",
+                "github:andyrids/micropython-networkutils/networkutils/",
                 "https://micropython.org/pi/v2",
                 "lib",
                 "main",
@@ -168,7 +168,9 @@ def test_network_interface_ap(
         serial_connection.exec("AP_PASSWORD = _DEVICE_ID")
 
         serial_connection.exec("WLAN = get_network_interface(mode=1)")
-        serial_connection.exec("WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)")
+        serial_connection.exec(
+            "WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)"
+        )
 
         serial_connection.exec("WLAN.active(True)")
 

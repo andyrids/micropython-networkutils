@@ -103,7 +103,7 @@ def test_package_installation(
         try:
             mip._install_package(
                 serial_connection,
-                "github:andyrids/micropython-networkutils/networkutils/",
+                "github:andyrids/micropython-networkutils/",
                 "https://micropython.org/pi/v2",
                 "lib",
                 "main",

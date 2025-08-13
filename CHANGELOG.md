@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 <!-- Added | Changed | Deprecated | Removed | Fixed -->
+## [0.2.0] - 2025-08-13
+
+### Added
+
+- Asynchronous programming with `asyncio`.
+- Hierarchical Finite State Machine for automatic WLAN interface state management.
+- Namespace package layout & structure for development in a Python context.
+
+### Removed
+
+- Namespace package layout & structure for development in a Python context.
+  - Package now focuses on WLAN interface management.
+
 ## [0.1.0] - 2025-06-25
 
 ### Added

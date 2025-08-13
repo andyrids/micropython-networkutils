@@ -9,37 +9,6 @@ This package facilitates MicroPython development in VSCode through the settings 
 * `typing`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing.py)
 * `typing_extensions`: [micropython-stubs](https://raw.githubusercontent.com/Josverl/micropython-stubs/refs/heads/main/mip/typing_extensions.py)
 
-In a MicroPython context, This package follows the ***extension package*** concept outlined in the [micropython-lib](https://github.com/micropython/micropython-lib) repository. Extension packages will extend the functionality of the `networkutils` package, by adding additional files to the same package directory. These packages will follow the naming convention `networkutils-*` and will install extra modules to the directory `lib/networkutils` on the device.
-
-e.g. `networkutils` would install the `core.py` file on the device as `lib/networkutils/core.py` and the `networkutils-mqtt` extension package would install `mqtt.py` as `lib/networkutils/mqtt.py`.
-
-Installation of `networkutils` will only install files that are part of the `networkutils` package, whereas installation of `networkutils-mqtt` will install the package extension files along with the `networkutils` package it extends.
-
-```text
-micropython-networkutils
-├── networkutils           <-- Core `networkutils` package
-│   ├── manifest.py
-│   ├── networkutils       <-- Device installation dir i.e. `lib/networkutils/`
-│   │   └── core.py        <-- Core package module
-│   └── package.json       <-- Package URLs & dependencies (for `mip install`)
-├── networkutils-mqtt      <-- Extension package for `networkutils`
-│   ├── manifest.py
-│   ├── networkutils       <-- Device installation dir i.e. `lib/networkutils/`
-│   │   └── mqtt.py        <-- Extension package module
-│   ├── package.json       <-- Extension package URLs & dependencies (includes core `networkutils`)
-│   └── pyproject.toml     <-- Extension package `pyproject.toml` enables uv workspace & namespace 
-```
-
-In a standard Python context, this package is called `micropython-networkutils` and follows a Python [namespace](https://packaging.python.org/en/latest/guides/packaging-namespace-packages/) structure, with the shared namespace being `networkutils`. The aforementioned MicroPython ***extension packages*** in this context, are optional dependencies listed in the root `pyproject.toml.` For example, to install `networkutils` and `networkutils-mqtt`, you could pip install `micropython-networkutils[mqtt]`. This would enable imports like so:
-
-```python
-from networkutils.core import NetworkEnv
-from networkutils.mqtt import CertificateNotFound
-```
-
-This namespace layout enables the local installation of the package and the use of `pytest` functions,
-which can test the interface locally, in the same way it is exposed on the device.
-
 ## New Issues; Bugs & Features
 
 ### Features
@@ -84,16 +53,16 @@ source .venv/bin/activate
 
 With the virtual environment activated, the `ruff` check & format commands will implement the rules set in the pyproject.toml file. These tool can be also be run using the commands `uv run ruff check` or `uv run ruff format`.
 
-To run the ruff linting tool, use the following command:
-
-```sh
-ruff check --fix
-```
-
 To format the code in accordance with the project formatting rules, use the following command:
 
 ```sh
 ruff format
+```
+
+To run the ruff linting tool, use the following command:
+
+```sh
+ruff check --fix
 ```
 
 ### Commit Messages

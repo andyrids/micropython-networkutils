@@ -42,7 +42,7 @@ Activate the virtual environment:
 The unit test functions can be run with the following command:
 
 ```sh
-pytest --cov=networkutils/networkutils -v
+pytest --cov=networkutils -v
 ```
 
 ## Integration Testing

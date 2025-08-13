@@ -1,6 +1,7 @@
 {
     "urls": [
-        ["networkutils/core.py", "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils/-/raw/HEAD/networkutils/networkutils/core.py"]
+        ["networkutils/__init__.py", "github:andyrids/micropython-networkutils/networkutils/__init__.py"],
+        ["networkutils/core.py", "github:andyrids/micropython-networkutils/networkutils/core.py"]
     ],
     "deps": [
         ["logging", "latest"],

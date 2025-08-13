@@ -1,9 +1,0 @@
-{
-    "urls": [
-        ["networkutils/mqtt.py", "https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils/-/raw/HEAD/networkutils-mqtt/networkutils/mqtt.py"]
-    ],
-    "deps": [
-        ["https://gitlab.com/micropython-iot-projects/libraries/micropython-networkutils/-/raw/HEAD/networkutils/", "main"]
-    ],
-    "version": "0.0.1"
-}

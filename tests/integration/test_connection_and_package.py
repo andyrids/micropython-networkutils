@@ -164,16 +164,20 @@ def test_network_interface_ap(
         out = serial_connection.exec("print(repr(env._env))")
         assert literal_eval(out.decode().strip()) == ENV
 
-        # WLAN_MODE should be WLAN.AP_IF (1)
+        serial_connection.exec("AP_SSID = f'DEVICE-{_DEVICE_ID}'")
+        serial_connection.exec("AP_PASSWORD = _DEVICE_ID")
+
+        serial_connection.exec("WLAN = get_network_interface(mode=1)")
         serial_connection.exec(
-            "WLAN, WLAN_MODE = get_network_interface(debug=True)"
+            "WLAN.config(ssid=AP_SSID, password=AP_PASSWORD)"
         )
 
-        out = serial_connection.exec("print(WLAN_MODE)")
-        assert int(out.decode().strip()) == 1
+        serial_connection.exec("WLAN.active(True)")
 
         out = serial_connection.exec("print(WLAN.active())")
         assert literal_eval(out.decode().strip()) is True
+
+        out = serial_connection.exec("WLAN.scan()")
 
         out = serial_connection.exec("print(_DEVICE_ID)")
         DEVICE_ID = out.decode().strip()

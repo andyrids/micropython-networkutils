@@ -111,7 +111,14 @@ class WLANCredentialsError(Exception):
 class WLANConnectionError(Exception):
     """Raised on failed WLAN connection."""
 
-    pass
+    def __init__(self, WLAN: Optional[network.WLAN] = None) -> None:
+        """Initialises Exception with WLAN instance & error message.
+
+        Args:
+            WLAN: Network interface instance. Defaults to None.
+        """
+        SSID = "Unknown SSID" if WLAN is None else WLAN.config("ssid")
+        super().__init__(f"Failed WLAN connection ({SSID})")
 
 
 class WLANInitialisationError(Exception):
@@ -1179,7 +1186,7 @@ class WLANMachine(Machine):
                 raise SystemExit
             except (WLANConnectionError, NetworkModeError) as e:
                 exception_cls = e.__class__.__name__
-                _logger.error(f"Caught `{exception_cls}`")
+                _logger.exception(f"Caught `{exception_cls}`")
 
                 self._WLAN_MODE = network.AP_IF
                 await self.transition(

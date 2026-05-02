@@ -3,7 +3,7 @@ set dotenv-load := true
 # ENVIRONMENT VARIABLES (`.env` or default)
 # ====================================================
 
-PORT := env("PORT", "8080")
+# PORT := env("PORT", "8080")
 
 
 [default]
@@ -49,10 +49,25 @@ resync: clean sync
 # DEV & QA
 # ====================================================
 
-[doc("Open browser @ `http://localhost:$PORT`")]
+[doc("Format microcontroller [`mpremote`]")]
 [group("DEV")]
-@browser:
-    uv run -m webbrowser -t http://127.0.0.1:{{ PORT }}
+@mpremote-format:
+    mpremote exec --no-follow "import os, machine, rp2; os.umount('/'); bdev = rp2.Flash(); os.VfsLfs2.mkfs(bdev, progsize=256); vfs = os.VfsLfs2(bdev, progsize=256); os.mount(vfs, '/'); machine.reset()"
+
+[doc("Install `networkutils` onto a connected microcontroller [`mpremote`]")]
+[group("DEV")]
+@mpremote-install:
+    mpremote mip install "github:andyrids/micropython-networkutils/"
+
+[doc("Run AP example on a connected microcontroller [`mpremote`]")]
+[group("DEV")]
+@mpremote-runap:
+    mpremote run "examples/ap_fsm.py"
+
+[doc("Run STA example on a connected microcontroller [`mpremote`]")]
+[group("DEV")]
+@mpremote-runsta:
+    mpremote run "examples/sta_mode.py"
 
 [doc("Git prune all unreachable objects immediately")]
 [group("QA")]

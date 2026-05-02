@@ -12,12 +12,14 @@ Copyright (C): 2025.
 """
 
 import logging
-from binascii import hexlify, unhexlify
+from typing import TYPE_CHECKING
 
 import pytest
 from pytest_mock import MockerFixture
-from rich.pretty import pprint
 from unittest.mock import AsyncMock, MagicMock, NonCallableMagicMock
+
+if TYPE_CHECKING:
+    from networkutils.core import NetworkEnv
 
 
 @pytest.fixture
@@ -54,7 +56,7 @@ async def test_get_network_interface_debug_mode(
     set_level = mocker.patch.object(_logger, "setLevel", autospec=True)
 
     # force AP mode to avoid `connect_interface` & `access_point_reset`
-    network_env_instance.putenv("WLAN_SSID", None)
+    network_env_instance.delenv("WLAN_SSID")
 
     # `_logger` instance from `networkutils.core` is what we need to check
     # in `conftest`, `logging.getLogger` returns `mock_logger_instance`

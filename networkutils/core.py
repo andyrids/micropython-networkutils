@@ -24,7 +24,7 @@ import logging
 import machine
 import network
 import sys
-from typing import Any, Callable, Coroutine, Optional, Union
+from typing import Any, Callable, Coroutine, Optional, Union, cast
 
 
 _DEVICE_ID = binascii.hexlify(machine.unique_id()).decode().upper()
@@ -47,7 +47,7 @@ class NetworkEnv:
     AP_PASSWORD = "AP_PASSWORD"
 
     _instance = None
-    _env = {}
+    _env: dict[str, str] = {}
 
     def __new__(cls) -> "NetworkEnv":
         """Return a `singleton` instance of the `NetworkEnv` class.
@@ -66,7 +66,7 @@ class NetworkEnv:
             # extra initialisation here...
         return cls._instance
 
-    def getenv(self, key: str) -> Union[str, None]:
+    def getenv(self, key: str) -> Optional[str]:
         """Get environment variable from `_env` property.
 
         Args:
@@ -75,8 +75,7 @@ class NetworkEnv:
         Returns:
             Environment variable value or None.
         """
-        value = self._env.get(key)
-        return str(value) if value else None
+        return self._env.get(key) or None
 
     def putenv(self, key: str, value: str) -> None:
         """Set environment variable in `_env` property.
@@ -453,7 +452,7 @@ class State:
     async def on_enter(
         self,
         coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
-        *args,
+        *args: Any,
     ) -> None:
         """Coroutine to run on state entry."""
         coro_name = coro.__name__ if coro else "NOP"
@@ -464,7 +463,7 @@ class State:
     async def on_exit(
         self,
         coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
-        *args,
+        *args: Any,
     ) -> None:
         """Coroutine to run on state exit."""
         coro_name = coro.__name__ if coro else "NOP"
@@ -476,6 +475,15 @@ class State:
         """Abstract method to be implemented by a concrete `State`."""
         _logger.debug(f"Executing `{self.name}.run`")
         raise NotImplementedError("Missing abstract `State.run` method")
+
+
+class WLANState(State):
+    """Base class for `State` subclasses that require `WLANMachine` access."""
+
+    @property
+    def machine(self) -> "WLANMachine":
+        """Reference to the `WLANMachine` FSM."""
+        return cast("WLANMachine", self._machine)
 
 
 class CompositeState(State):
@@ -500,7 +508,7 @@ class CompositeState(State):
                 to False.
         """
         super().__init__(machine, in_composite)
-        self._substate = None
+        self._substate: Optional[Union["CompositeState", State]] = None
         self._initial_substate_cls = initial_substate_cls
 
     @property
@@ -518,7 +526,7 @@ class CompositeState(State):
     async def on_enter(
         self,
         coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
-        *args,
+        *args: Any,
     ) -> None:
         """Executes logic & coroutines on state entry.
 
@@ -537,7 +545,7 @@ class CompositeState(State):
     async def on_exit(
         self,
         coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
-        *args,
+        *args: Any,
     ) -> None:
         """Executes logic & coroutines on state exit.
 
@@ -558,7 +566,7 @@ class CompositeState(State):
         if isinstance(substate, State):
             await substate.run()
         else:
-            await asyncio.sleep_ms(100)
+            await asyncio.sleep_ms(100)  # type: ignore[attr-defined]
 
     async def change_substate(
         self, new_substate: Union["CompositeState", State]
@@ -580,7 +588,9 @@ class CompositeState(State):
 
         if isinstance(substate, State):
             await substate.on_exit()
-            _logger.info(f"{self.name}[{substate.name} -> {new_substate.name}]")
+            _logger.info(
+                f"{self.name}[{substate.name} -> {new_substate.name}]"
+            )
         else:
             _logger.info(f"{self.name}[None -> {new_substate.name}]")
         await new_substate.on_enter()
@@ -606,7 +616,7 @@ class UninitialisedState(State):
             )
 
 
-class WLANModeChoiceState(State):
+class WLANModeChoiceState(WLANState):
     """Transient choice state for `WLAN` initialisation mode (AP | STA).
 
     The WLAN interface mode is based on the `machine.WLAN_MODE` value,
@@ -634,7 +644,7 @@ class WLANModeChoiceState(State):
         )
 
 
-class InitialisingState(State):
+class InitialisingState(WLANState):
     """The `WLAN` interface is initialising in AP | STA mode."""
 
     def __init__(
@@ -680,10 +690,10 @@ class InitialisingState(State):
             )
 
 
-class ResettingState(State):
+class ResettingState(WLANState):
     """The `WLAN` is resetting."""
 
-    async def on_enter(self) -> None:
+    async def on_enter(self) -> None:  # type: ignore[override]
         """Calls `uninitialise_interface` on state entry."""
         await super().on_enter(uninitialise_interface, self.machine.WLAN)
 
@@ -765,10 +775,10 @@ class InactiveAPState(State):
         )
 
 
-class ActivatingAPState(State):
+class ActivatingAPState(WLANState):
     """The `WLAN` AP is activating."""
 
-    async def on_enter(self) -> None:
+    async def on_enter(self) -> None:  # type: ignore[override]
         """Calls `activate_interface` on state entry."""
         await super().on_enter(activate_interface, self.machine.WLAN)
 
@@ -787,7 +797,7 @@ class ActiveAPState(CompositeState):
     """
 
 
-class BroadcastingState(State):
+class BroadcastingState(WLANState):
     """The `WLAN` AP is actively broadcasting its network."""
 
     async def run(self) -> None:
@@ -801,10 +811,10 @@ class BroadcastingState(State):
             await asyncio.sleep(5)
 
 
-class DeactivatingAPState(State):
+class DeactivatingAPState(WLANState):
     """The `WLAN` AP is deactivating."""
 
-    async def on_enter(self) -> None:
+    async def on_enter(self) -> None:  # type: ignore[override]
         """Calls `deactivate_interface` on state entry."""
         await super().on_enter(deactivate_interface, self.machine.WLAN)
 
@@ -845,10 +855,10 @@ class InactiveSTAState(State):
         )
 
 
-class ActivatingSTAState(State):
+class ActivatingSTAState(WLANState):
     """The `WLAN` STA is activating."""
 
-    async def on_enter(self) -> None:
+    async def on_enter(self) -> None:  # type: ignore[override]
         """Calls `activate_interface` on state entry."""
         await super().on_enter(activate_interface, self.machine.WLAN)
 
@@ -885,7 +895,7 @@ class DisconnectedSTAState(State):
         )
 
 
-class ScanningSTAState(State):
+class ScanningSTAState(WLANState):
     """The `WLAN` STA is scanning for available Access Points."""
 
     async def run(self) -> None:
@@ -898,7 +908,7 @@ class ScanningSTAState(State):
             raise WLANNotFoundError
 
 
-class ConnectingSTAState(State):
+class ConnectingSTAState(WLANState):
     """The `WLAN` STA is connecting to an Access Point."""
 
     async def run(self) -> None:
@@ -921,7 +931,7 @@ class ConnectingSTAState(State):
             )
 
 
-class ConnectedSTAState(State):
+class ConnectedSTAState(WLANState):
     """The `WLAN` STA is connected to an Access Point."""
 
     async def run(self) -> None:
@@ -941,7 +951,7 @@ class ConnectedSTAState(State):
                 break
 
 
-class STAConnectionErrorState(State):
+class STAConnectionErrorState(WLANState):
     """The `WLAN` STA experienced a connection error."""
 
     def __init__(
@@ -999,10 +1009,10 @@ class STAConnectionErrorState(State):
             )
 
 
-class DeactivatingSTAState(State):
+class DeactivatingSTAState(WLANState):
     """The `WLAN` STA is deactivating."""
 
-    async def on_enter(self) -> None:
+    async def on_enter(self) -> None:  # type: ignore[override]
         """Calls `deactivate_interface` on state exit."""
         await super().on_enter(deactivate_interface, self.machine.WLAN)
 
@@ -1063,9 +1073,9 @@ class Machine:
         await self.current_state.on_enter()
         while True:
             await self.current_state.run()
-            await asyncio.sleep_ms(10)
+            await asyncio.sleep_ms(10)  # type: ignore[attr-defined]
 
-    def start(self) -> None:
+    def start(self) -> None | asyncio.Task[Any]:
         """Abstract `start` method to be implemented by concrete FSM."""
         _logger.info("Executing `Machine.start`")
         raise NotImplementedError("Missing `Machine.start` method")
@@ -1087,7 +1097,8 @@ class WLANMachine(Machine):
                 FSM transitions from `STAModeState` -> `TerminalErrorState`.
         """
         super().__init__(current_state=UninitialisedState(self))
-        self._WLAN = None
+        self._WLAN: Optional[network.WLAN] = None
+        self._WLAN_MODE: Optional[int]
         if mode is not None and network.STA_IF <= mode <= network.AP_IF:
             self._WLAN_MODE = mode
         else:
@@ -1103,7 +1114,7 @@ class WLANMachine(Machine):
 
     # --- Public API --- #
 
-    def start(self) -> asyncio.Task:
+    def start(self) -> asyncio.Task[None]:
         """Starts the FSM `run` coroutine `Task`.
 
         The `Machine.run` coroutine executes the FSM current `State.on_enter`
@@ -1124,7 +1135,7 @@ class WLANMachine(Machine):
         """FSM WLAN interface property."""
         if isinstance(self._WLAN, network.WLAN):
             return self._WLAN
-        raise TypeError("`_WLAN` not set to a `network.WLAN` instance")
+        raise TypeError("`_WLAN` not set to a `network.WLAN` instance")  # noqa: TRY003
 
     @property
     def WLAN_MODE(self) -> Union[int, None]:

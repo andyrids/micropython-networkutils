@@ -13,11 +13,14 @@ Copyright (C): 2025.
 
 import logging
 from binascii import hexlify, unhexlify
+from typing import TYPE_CHECKING
 
 import pytest
 from pytest_mock import MockerFixture
-from rich.pretty import pprint
 from unittest.mock import MagicMock
+
+if TYPE_CHECKING:
+    from networkutils.core import NetworkEnv
 
 
 def test_device_id(
@@ -25,7 +28,7 @@ def test_device_id(
     mock_machine_module: MagicMock,
     mock_network_module: MagicMock,
 ) -> None:
-    """"""
+    """Test device ID generation for default AP credentials."""
     mock_id = unhexlify("E66164084373532B")
     mock_machine_module.unique_id.return_value = mock_id
     from networkutils.core import _DEVICE_ID
@@ -182,7 +185,7 @@ async def test_connect_interface_success(
 
 @pytest.mark.asyncio
 async def test_connect_interface_ssid_not_set(
-    network_env_instance: "NetworkEnv",  # type: ignore
+    network_env_instance: "NetworkEnv",
     mock_wlan_instance: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -268,7 +271,9 @@ async def test_connect_interface_timeout(
         (bytes(SSID, encoding="utf-8"), b"", 1, 0, 0)
     ]
 
-    mock_wlan_instance.status.return_value = mock_network_module.STAT_CONNECTING
+    mock_wlan_instance.status.return_value = (
+        mock_network_module.STAT_CONNECTING
+    )
     mock_wlan_instance.isconnected.return_value = False
 
     # simulate exceeding 30s timeout loop

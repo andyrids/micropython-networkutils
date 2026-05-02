@@ -40,6 +40,7 @@ dev = [
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
     "ruff>=0.11.5",
+    "types-pyserial>=3.5.0.20260408",
 ]
 
 [project.urls]
@@ -123,3 +124,16 @@ version_scheme = "guess-next-dev"
 [tool.mypy]
 strict = true
 pretty = true
+# mypy_path = ".venv/Lib/site-packages"
+# custom_typeshed_dir = ".venv/lib/site-packages" # allow mypy to use micropython-stdlib
+# files = "src/*.py"
+follow_imports = "silent"
+mypy_path = ["typings"]
+
+[[tool.mypy.overrides]]
+module = ["mpremote", "mpremote.*"]
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = ["tests.integration.*"]
+disable_error_code = ["import-untyped"]

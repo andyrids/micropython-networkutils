@@ -8,9 +8,12 @@ License: GNU General Public License v3 or later.
 Copyright (C): 2025.
 """
 
-import pytest
+from typing import TYPE_CHECKING
+
 from pytest_mock import MockerFixture
-from unittest.mock import MagicMock
+
+if TYPE_CHECKING:
+    from networkutils.core import NetworkEnv
 
 
 def test_networkenv_singleton() -> None:
@@ -26,7 +29,6 @@ def test_networkenv_getenv_putenv(
     mocker: MockerFixture, network_env_instance: "NetworkEnv"
 ) -> None:
     """Test getting & setting network environment variables."""
-    from networkutils import NetworkEnv
 
     env = network_env_instance
 
@@ -34,10 +36,10 @@ def test_networkenv_getenv_putenv(
     assert env.getenv("FOO") == "BAR"
     assert env.getenv("NOT_SET") is None
 
-    env.putenv("TEST_INT", 123)
+    env.putenv("TEST_INT", "123")
     assert env.getenv("TEST_INT") == "123"
 
-    env.putenv("TEST_FLOAT", 45.6)
+    env.putenv("TEST_FLOAT", "45.6")
     assert env.getenv("TEST_FLOAT") == "45.6"
 
     env.putenv("EMPTY_STR", "")

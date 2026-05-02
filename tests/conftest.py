@@ -10,10 +10,9 @@ Copyright (C): 2025.
 """
 
 import logging
-import sys
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from typing import Any, Optional
-from unittest.mock import AsyncMock, MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -41,33 +40,31 @@ class MockWLAN:
             mode (int): Network interface mode, STA (0) or AP (1).
         """
         if not self.IF_STA <= mode <= self.IF_AP:
-            raise ValueError(f"Incorrect network mode - {mode}")
+            raise ValueError(f"Incorrect network mode - {mode}")  # noqa: TRY003
         self._mode = mode
         self._active = False
         self._connected = False
         self._status = self.STAT_IDLE
-        self._config = {}
+        self._config: dict[str, Any] = {}
 
     def active(self, is_active: Optional[bool | int] = None) -> bool | None:
         """Activate or deactivate network interface or query current state.
 
-        Ff no argument is provided. Most other methods require active interface.
-
         Args:
-            is_active (bool | int, optional): Activate or deactivate network
-                interface based on value or query current state if None.
-                Defaults to None.
+            is_active: Activate or deactivate network interface based on value
+                or query current state if None. Defaults to None.
 
         Returns:
-            Union[bool, None]: None if activating or deactivating the network
+            None if activating or deactivating the network
                 interface else boolean value based on current network state.
         """
         if is_active:
             self._active = bool(is_active)
+            return None
         else:
             return self._active
 
-    def config(self, *args, **kwargs: Any) -> None:
+    def config(self, *args: Any, **kwargs: Any) -> None | Any:
         """Get or set general network interface parameters.
 
         These methods allow to work with additional parameters beyond standard
@@ -84,6 +81,7 @@ class MockWLAN:
             return self._config.get(key)
         except ValueError:
             self._config.update(kwargs)
+            return None
 
     def connect(
         self, ssid: Optional[str] = None, password: Optional[str] = None
@@ -103,7 +101,7 @@ class MockWLAN:
         """Uninitialise network interface."""
         self._active = False
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Disconnect from the currently connected wireless network."""
         self._connected = False
 
@@ -117,7 +115,7 @@ class MockWLAN:
         """
         return self._connected
 
-    def scan(self) -> list[tuple]:
+    def scan(self) -> list[tuple[bytes, bytes, int, int, int]]:
         """Scan for the available wireless networks.
 
         Hidden networks -- where the SSID is not broadcast -- will also be
@@ -130,7 +128,7 @@ class MockWLAN:
         """
         return [(b"TEST_SSID", b"", 12, 0, 0)]
 
-    def status(self):
+    def status(self) -> int:
         """Return the current status of the wireless connection.
 
         When called with no argument, the return value describes the network
@@ -153,15 +151,15 @@ class MockWLAN:
 
 @pytest.fixture
 def mock_machine_module(mocker: MockerFixture) -> MagicMock:
-    """"""
-    mock_machine = mocker.MagicMock(name="machine_module")
+    """Mocks the `machine` module."""
+    mock_machine: MagicMock = mocker.MagicMock(name="machine_module")
     mock_machine.unique_id.return_value = unhexlify("E66164084373532B")
     return mock_machine
 
 
 @pytest.fixture
 def mock_network_module(mocker: MockerFixture) -> MagicMock:
-    """"""
+    """Mocks the `network` module and `network.WLAN` class."""
     mock_wlan_class = mocker.MagicMock(name="WLAN_class")
     mock_wlan_class.IF_STA = MockWLAN.IF_STA
     mock_wlan_class.IF_AP = MockWLAN.IF_AP
@@ -169,7 +167,7 @@ def mock_network_module(mocker: MockerFixture) -> MagicMock:
     mock_wlan_class.PM_PERFORMANCE = MockWLAN.PM_PERFORMANCE
     mock_wlan_class.PM_POWERSAVE = MockWLAN.PM_POWERSAVE
 
-    mock_network = mocker.MagicMock(name="network_module")
+    mock_network: MagicMock = mocker.MagicMock(name="network_module")
     mock_network.STA_IF = 0
     mock_network.AP_IF = 1
     mock_network.PM_NONE = 0
@@ -194,7 +192,7 @@ def mock_network_module(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture
 def mock_time_module(mocker: MockerFixture) -> MagicMock:
     """Mocks the time module."""
-    mock_time = mocker.MagicMock(name="time_module")
+    mock_time: MagicMock = mocker.MagicMock(name="time_module")
     mock_time.sleep = mocker.MagicMock(name="sleep_func")
     # `time.time` can be configured with side_effect in tests
     mock_time.time = mocker.MagicMock(name="time_func", return_value=0)
@@ -204,7 +202,7 @@ def mock_time_module(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture
 def mock_asyncio_module(mocker: MockerFixture) -> MagicMock:
     """Mocks the time module."""
-    mock_asyncio = mocker.MagicMock(name="asyncio_module")
+    mock_asyncio: MagicMock = mocker.MagicMock(name="asyncio_module")
     mock_asyncio.sleep = mocker.AsyncMock(name="sleep_func")
     return mock_asyncio
 
@@ -212,7 +210,7 @@ def mock_asyncio_module(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture
 def mock_logging_module(mocker: MockerFixture) -> MagicMock:
     """Mocks the logging module."""
-    mock_logging = mocker.MagicMock(name="logging_module")
+    mock_logging: MagicMock = mocker.MagicMock(name="logging_module")
     mock_logger_instance = mocker.MagicMock(name="logger_instance")
     mock_logging.getLogger.return_value = mock_logger_instance
     mock_logging.Formatter = mocker.MagicMock(name="Formatter_class")
@@ -228,7 +226,7 @@ def mock_logging_module(mocker: MockerFixture) -> MagicMock:
 
 
 @pytest.fixture
-def mock_wlan_instance(mock_network_module: MagicMock) -> MagicMock:
+def mock_wlan_instance(mock_network_module: MagicMock) -> Any:
     """Mocks a `network.WLAN` instance."""
     # instance returned by `network.WLAN`
     return mock_network_module.WLAN.return_value

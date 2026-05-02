@@ -11,6 +11,9 @@ async def main() -> None:
     fsm = WLANMachine(mode=network.AP_IF, reset_state=False)
     fsm.start()
 
+    # Call fsm.deactivate() from any concurrent coroutine or task to request
+    # a graceful transition: BroadcastingState -> DeactivatingAPState ->
+    # InactiveAPState. The FSM responds at the next 5-second poll interval.
     while True:
         await asyncio.sleep(1)
 

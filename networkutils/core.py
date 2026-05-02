@@ -1,4 +1,3 @@
-# sourcery skip: use-contextlib-suppress
 # pyright: reportMissingImports=false, reportAttributeAccessIssue=false
 """A MicroPython `network` utility functions module.
 
@@ -253,7 +252,8 @@ async def connect_interface(WLAN: network.WLAN) -> None:
         WLAN.connect(WLAN_SSID, WLAN_PASSWORD)
     # if WLAN is not in STA mode
     except (OSError, TypeError) as e:
-        _logger.error(f"Error connecting to SSID '{WLAN_SSID}' - {e}")
+        msg = "Error connecting to SSID - check WLAN mode and credentials"
+        _logger.exception(msg)
         raise WLANConnectionError from e
     try:  # 30 second timeout
         _logger.debug("Waiting for WLAN connection")
@@ -416,15 +416,21 @@ def network_status_message(WLAN: network.WLAN, mode: int) -> str:
 class State:
     """Base class for individual atomic states."""
 
-    def __init__(self, machine: "Machine", in_composite: bool = False) -> None:
+    def __init__(
+        self,
+        machine: "Machine",
+        in_composite: "Union[bool, CompositeState]" = False,
+    ) -> None:
         """Initialises a `State` class.
 
         Args:
             machine: A Concrete `Machine` instance that manages the
                 `State` as a Finite State Machine (FSM).
 
-            in_composite: Within a `CompositeState` hierarchy flag. Defaults
-                to False.
+            in_composite: Substate flag or direct `CompositeState` parent
+                reference. Pass `True` for standard hierarchy delegation, or
+                pass the specific parent `CompositeState` instance for direct
+                parent targeting. Defaults to False.
         """
         self._machine = machine
         self._in_composite = in_composite
@@ -445,31 +451,25 @@ class State:
         return self.__class__.__name__
 
     @property
-    def in_composite(self) -> bool:
-        """`CompositeState` substate flag."""
+    def in_composite(self) -> "Union[bool, CompositeState]":
+        """`CompositeState` substate flag or direct parent reference."""
         return self._in_composite
 
-    async def on_enter(
-        self,
-        coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
-        *args: Any,
-    ) -> None:
-        """Coroutine to run on state entry."""
-        coro_name = coro.__name__ if coro else "NOP"
-        _logger.debug(f"Executing `{self.name}.on_enter` - `{coro_name}`")
-        if coro:
-            await coro(*args)
+    async def on_enter(self) -> None:
+        """Lifecycle hook: called on state entry."""
+        _logger.debug(f"Executing `{self.name}.on_enter`")
+        await self._setup()
 
-    async def on_exit(
-        self,
-        coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
-        *args: Any,
-    ) -> None:
-        """Coroutine to run on state exit."""
-        coro_name = coro.__name__ if coro else "NOP"
-        _logger.debug(f"Executing `{self.name}.on_exit` - `{coro_name}`")
-        if coro:
-            await coro(*args)
+    async def _setup(self) -> None:
+        """Override to run logic on state entry."""
+
+    async def on_exit(self) -> None:
+        """Lifecycle hook: called on state exit."""
+        _logger.debug(f"Executing `{self.name}.on_exit`")
+        await self._teardown()
+
+    async def _teardown(self) -> None:
+        """Override to run logic on state exit."""
 
     async def run(self) -> None:
         """Abstract method to be implemented by a concrete `State`."""
@@ -493,7 +493,7 @@ class CompositeState(State):
         self,
         machine: "Machine",
         initial_substate_cls: Optional[type["State"]] = None,
-        in_composite: bool = False,
+        in_composite: "Union[bool, CompositeState]" = False,
     ) -> None:
         """Initialises a `CompositeState` class.
 
@@ -504,8 +504,8 @@ class CompositeState(State):
             initial_substate_cls: A concrete `State` class to instantiate and
                 set as the initial substate. Defaults to None.
 
-            in_composite: Within a `CompositeState` hierarchy flag. Defaults
-                to False.
+            in_composite: Substate flag or direct `CompositeState` parent
+                reference. Defaults to False.
         """
         super().__init__(machine, in_composite)
         self._substate: Optional[Union["CompositeState", State]] = None
@@ -523,42 +523,20 @@ class CompositeState(State):
         """Current substate property."""
         return self._substate
 
-    async def on_enter(
-        self,
-        coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
-        *args: Any,
-    ) -> None:
-        """Executes logic & coroutines on state entry.
-
-        Args:
-            coro: Coroutine to be run on state entry.
-
-            *args: Coroutine arguments.
-        """
-        await super().on_enter(coro, *args)
+    async def _setup(self) -> None:
+        """Enters initial substate if configured."""
         if self._initial_substate_cls:
             _logger.info(f"Initial `{self.name}.change_substate`")
             await self.change_substate(
                 self._initial_substate_cls(self.machine, in_composite=True)
             )
 
-    async def on_exit(
-        self,
-        coro: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None,
-        *args: Any,
-    ) -> None:
-        """Executes logic & coroutines on state exit.
-
-        Args:
-            coro: Coroutine to be run on state exit.
-
-            *args: Coroutine arguments.
-        """
+    async def _teardown(self) -> None:
+        """Exits current substate on composite exit."""
         substate = self.substate
         if isinstance(substate, State):
             await substate.on_exit()
             self._substate = None
-        await super().on_exit(coro, *args)
 
     async def run(self) -> None:
         """Run current substate logic."""
@@ -581,7 +559,10 @@ class CompositeState(State):
         """
 
         substate = self.substate
-        if isinstance(substate, CompositeState) and new_substate.in_composite:
+        if (
+            isinstance(substate, CompositeState)
+            and new_substate.in_composite is True
+        ):
             # delegate transition to child `CompositeState`
             await substate.change_substate(new_substate)
             return
@@ -693,9 +674,9 @@ class InitialisingState(WLANState):
 class ResettingState(WLANState):
     """The `WLAN` is resetting."""
 
-    async def on_enter(self) -> None:  # type: ignore[override]
+    async def _setup(self) -> None:
         """Calls `uninitialise_interface` on state entry."""
-        await super().on_enter(uninitialise_interface, self.machine.WLAN)
+        await uninitialise_interface(self.machine.WLAN)
 
     async def run(self) -> None:
         """Transitions to `InitialisingState`."""
@@ -778,9 +759,9 @@ class InactiveAPState(State):
 class ActivatingAPState(WLANState):
     """The `WLAN` AP is activating."""
 
-    async def on_enter(self) -> None:  # type: ignore[override]
+    async def _setup(self) -> None:
         """Calls `activate_interface` on state entry."""
-        await super().on_enter(activate_interface, self.machine.WLAN)
+        await activate_interface(self.machine.WLAN)
 
     async def run(self) -> None:
         """Transitions to `BroadcastingState`."""
@@ -801,22 +782,31 @@ class BroadcastingState(WLANState):
     """The `WLAN` AP is actively broadcasting its network."""
 
     async def run(self) -> None:
-        """TODO: implement logic on device connection to AP."""
+        """Broadcasts SSID; transitions to `DeactivatingAPState` on request."""
         SSID = self.machine.WLAN.config("ssid")
         _logger.info(f"Broadcasting SSID '{SSID}'")
 
-        # 1. Handle client connections
-        # 2. Await Event for `DeactivatingAPState`
         while True:
             await asyncio.sleep(5)
+            if self.machine._deactivate_event.is_set():
+                self.machine._deactivate_event.clear()
+                ap_mode_state = cast(
+                    CompositeState, self.machine.current_state
+                )
+                await self.machine.transition(
+                    DeactivatingAPState(
+                        self.machine, in_composite=ap_mode_state
+                    )
+                )
+                break
 
 
 class DeactivatingAPState(WLANState):
     """The `WLAN` AP is deactivating."""
 
-    async def on_enter(self) -> None:  # type: ignore[override]
+    async def _setup(self) -> None:
         """Calls `deactivate_interface` on state entry."""
-        await super().on_enter(deactivate_interface, self.machine.WLAN)
+        await deactivate_interface(self.machine.WLAN)
 
     async def run(self) -> None:
         """Transitions to `InactiveAPState`."""
@@ -858,9 +848,9 @@ class InactiveSTAState(State):
 class ActivatingSTAState(WLANState):
     """The `WLAN` STA is activating."""
 
-    async def on_enter(self) -> None:  # type: ignore[override]
+    async def _setup(self) -> None:
         """Calls `activate_interface` on state entry."""
-        await super().on_enter(activate_interface, self.machine.WLAN)
+        await activate_interface(self.machine.WLAN)
 
     async def run(self) -> None:
         """Transitions to `ActiveSTAState[DisconnectedSTAState]`."""
@@ -935,7 +925,7 @@ class ConnectedSTAState(WLANState):
     """The `WLAN` STA is connected to an Access Point."""
 
     async def run(self) -> None:
-        """Transitions to `STAConnectionErrorState` on connection error.
+        """Monitors connection; transitions on error or deactivation request.
 
         Monitors `WLAN` connection every 5 seconds.
         """
@@ -943,6 +933,17 @@ class ConnectedSTAState(WLANState):
         WLAN_SSID = env.getenv("WLAN_SSID")
         while True:
             await asyncio.sleep(5)
+            if self.machine._deactivate_event.is_set():
+                self.machine._deactivate_event.clear()
+                sta_mode_state = cast(
+                    CompositeState, self.machine.current_state
+                )
+                await self.machine.transition(
+                    DeactivatingSTAState(
+                        self.machine, in_composite=sta_mode_state
+                    )
+                )
+                break
             if not self.machine.WLAN.isconnected():
                 _logger.error(f"Connection error - SSID '{WLAN_SSID}'")
                 await self.machine.transition(
@@ -1012,9 +1013,9 @@ class STAConnectionErrorState(WLANState):
 class DeactivatingSTAState(WLANState):
     """The `WLAN` STA is deactivating."""
 
-    async def on_enter(self) -> None:  # type: ignore[override]
-        """Calls `deactivate_interface` on state exit."""
-        await super().on_enter(deactivate_interface, self.machine.WLAN)
+    async def _setup(self) -> None:
+        """Calls `deactivate_interface` on state entry."""
+        await deactivate_interface(self.machine.WLAN)
 
     async def run(self) -> None:
         """Transitions to `InactiveSTAState`."""
@@ -1054,10 +1055,13 @@ class Machine:
             new_state: New `State` to transition to.
         """
         _logger.info(f"Executing `{self.name}.transition`")
-        if new_state.in_composite and isinstance(
+        if isinstance(new_state.in_composite, CompositeState):
+            # direct transition to targeted parent `CompositeState`
+            await new_state.in_composite.change_substate(new_state)
+        elif new_state.in_composite and isinstance(
             self.current_state, CompositeState
         ):
-            # delegate transition to parent `CompositeState`
+            # delegate transition to current `CompositeState`
             await self.current_state.change_substate(new_state)
         else:
             # top-level 'Atomic' `State` transition
@@ -1104,6 +1108,7 @@ class WLANMachine(Machine):
         else:
             self._WLAN_MODE = None
         self._reset_state = reset_state
+        self._deactivate_event: asyncio.Event = asyncio.Event()
 
         env = NetworkEnv()
         AP_SSID = env.getenv(NetworkEnv.AP_SSID)
@@ -1146,6 +1151,16 @@ class WLANMachine(Machine):
     def reset_state(self) -> bool:
         """Access Point mode reset flag."""
         return self._reset_state
+
+    def deactivate(self) -> None:
+        """Request graceful deactivation of the WLAN interface.
+
+        Sets the internal deactivation event, causing `BroadcastingState` or
+        `ConnectedSTAState` to transition to the appropriate deactivating
+        state at the next monitoring interval (~5 seconds).
+        """
+        _logger.info("Executing `WLANMachine.deactivate`")
+        self._deactivate_event.set()
 
     async def handle_exceptions(
         self, coro: Callable[[], Coroutine[Any, Any, Any]]

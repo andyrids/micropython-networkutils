@@ -13,9 +13,16 @@ PORT := env("PORT", "8080")
 # ENVIRONMENT
 # ====================================================
 
+[doc("Install MicroPython stubs into `typings/` folder")]
+[group("ENV")]
+@stubs:
+    uv export --only-group dev --no-hashes --no-emit-project | \
+      grep "micropython" | \
+      uv pip install --target typings --requirements -
+
 [doc("Update project environment")]
 [group("ENV")]
-@sync:
+sync: stubs
     uv sync
 
 [doc("Upgrade dependencies")]

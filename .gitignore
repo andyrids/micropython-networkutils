@@ -8,6 +8,8 @@ __pycache__
 .coverage
 *.cover
 *.py.cover
+.pytest_cache/
+.ruff_cache/
 
 .env
 .envrc
@@ -18,3 +20,8 @@ ENV/
 env.bak/
 venv.bak/
 /typings/**
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json

@@ -124,9 +124,6 @@ version_scheme = "guess-next-dev"
 [tool.mypy]
 strict = true
 pretty = true
-# mypy_path = ".venv/Lib/site-packages"
-# custom_typeshed_dir = ".venv/lib/site-packages" # allow mypy to use micropython-stdlib
-# files = "src/*.py"
 follow_imports = "silent"
 mypy_path = ["typings"]
 

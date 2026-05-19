@@ -47,11 +47,10 @@ from pathlib import Path
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
-from typing import Any, Type
-from hatchling.plugin import hookimpl
+from typing import Any
 
 
-class CrossCompileHook(BuildHookInterface):
+class CrossCompileHook(BuildHookInterface):  # type: ignore[type-arg]
     """A build hook to compile Python files into MicroPython binaries."""
 
     PLUGIN_NAME = "compile"
@@ -88,7 +87,7 @@ class CrossCompileHook(BuildHookInterface):
         if not success:
             self.app.display_error("Batch compilation failed")
             self.app.display_error(stderr)
-            raise RuntimeError("`mpy-cross` compilation error")
+            raise RuntimeError("`mpy-cross` compilation error")  # noqa: TRY003
 
         artifacts = self._map_artifacts(files, root)
         self._update_build_data(build_data, artifacts)
@@ -164,13 +163,14 @@ class CrossCompileHook(BuildHookInterface):
             stderr = process.stderr.strip()
             if stderr:
                 self.app.display_warning(f"mpy-cross stderr: {stderr}")
-            return True, stderr
         except FileNotFoundError:
             self.app.display_error(f"Command failed - `{' '.join(cmd)}`")
             self.app.display_error("Ensure `mpy-cross` is installed")
             raise
         except subprocess.CalledProcessError as e:
             return False, e.stderr or e.stdout or "Unknown error"
+        else:
+            return True, stderr
 
     def _find_compiler(self) -> list[str]:
         """Locate the `mpy-cross` compiler."""
@@ -244,7 +244,9 @@ class CrossCompileHook(BuildHookInterface):
         """Update `build_data` to include MicroPython binaries in artifacts.
 
         Args:
-            build_data: dict[str, Any]: Package build data.
+            build_data: Package build data.
+            compiled_files: A dict containing compiled binary file paths as
+                keys and relative paths as values.
         """
         build_data.setdefault("artifacts", [])
         self.app.display_info("Updating `build_data` artifacts")

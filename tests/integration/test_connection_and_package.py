@@ -26,7 +26,6 @@ import logging
 import time
 from ast import literal_eval
 from typing import Generator
-from unittest.mock import MagicMock
 
 import pytest
 from mpremote import mip
@@ -85,7 +84,7 @@ def skip_if_no_serial_connection(serial_connection: SerialTransport) -> None:
 
 
 def test_enter_raw_repl(serial_connection: SerialTransport) -> None:
-    """"""
+    """Test entering raw REPL mode."""
     assert serial_connection.serial.is_open
     serial_connection.enter_raw_repl(soft_reset=True)
     time.sleep(1)
@@ -95,7 +94,7 @@ def test_enter_raw_repl(serial_connection: SerialTransport) -> None:
 def test_package_installation(
     serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """"""
+    """Test package installation using `mpremote`."""
     assert serial_connection.serial.is_open
     assert serial_connection.in_raw_repl
 
@@ -120,7 +119,7 @@ def test_package_installation(
 def test_package_import(
     serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """"""
+    """Tests importing the installed package."""
     assert serial_connection.serial.is_open
     assert serial_connection.in_raw_repl
 
@@ -135,7 +134,7 @@ def test_package_import(
 def test_network_config(
     serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """"""
+    """Test serial connection."""
     assert serial_connection.serial.is_open
     assert serial_connection.in_raw_repl
 
@@ -152,7 +151,7 @@ def test_network_config(
 def test_network_interface_ap(
     serial_connection: SerialTransport, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """"""
+    """Test AP mode configuration."""
     assert serial_connection.serial.is_open
     assert serial_connection.in_raw_repl
 

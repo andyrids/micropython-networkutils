@@ -2,6 +2,7 @@
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingModuleSource": "none"
     },
+    "python.analysis.exclude": ["typings", "**/__pycache__/**", "venv/**", ".venv/**", "**/node_modules", "**/.*"],
     "python.analysis.typeshedPaths": [
         "${command:python.interpreterPath}/../lib/python*/site-packages",
         "typings"

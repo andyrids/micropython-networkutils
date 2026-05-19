@@ -1,0 +1,42 @@
+#:schema https://raw.githubusercontent.com/j178/prek/refs/heads/master/prek.schema.json
+
+# REMOTE REPO HOOKS
+
+[[repos]]
+repo = "https://github.com/gitleaks/gitleaks"
+rev = "v8.30.1"
+
+  [[repos.hooks]]
+  id = "gitleaks"
+
+# LOCAL REPO HOOKS
+
+[[repos]]
+repo = "local"
+
+  [[repos.hooks]]
+  id = "ruff-format"
+  name = "ruff format"
+  entry = "uv run ruff format networkutils scripts tests"
+  language = "system"
+  types_or = ["python", "pyi"]
+  require_serial = true
+  pass_filenames = false
+
+  [[repos.hooks]]
+  id = "ruff-check"
+  name = "ruff check"
+  entry = "uv run ruff check --fix networkutils scripts tests"
+  language = "system"
+  types_or = ["python", "pyi"]
+  require_serial = true
+  pass_filenames = false
+
+  [[repos.hooks]]
+  id = "mypy"
+  name = "mypy"
+  entry = "uv run mypy networkutils scripts tests"
+  language = "system"
+  types_or = ["python", "pyi"]
+  require_serial = true
+  pass_filenames = false

@@ -6,3 +6,22 @@ __pycache__
 *.1
 *.mpy
 .coverage
+*.cover
+*.py.cover
+.pytest_cache/
+.ruff_cache/
+
+.env
+.envrc
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+/typings/**
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json

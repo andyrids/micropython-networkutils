@@ -29,15 +29,18 @@ dependencies = []
 [dependency-groups]
 dev = [
     "hatch>=1.14.1",
-    "micropython-rp2-rpi-pico-w-stubs>=1.25.0.post3",
-    "micropython-stdlib-stubs>=1.25.0",
-    "mpremote>=1.25.0",
-    "mpy-cross>=1.25.0,<1.26.0",
+    "micropython-rp2-rpi-pico-w-stubs~=1.28",
+    "micropython-stdlib-stubs~=1.28",
+    "mpremote~=1.28",
+    "mpy-cross>=1.27.0.post2,<1.29",
+    "mypy>=1.20.2",
+    "prek>=0.3.11",
     "pytest>=8.4.0",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
     "ruff>=0.11.5",
+    "types-pyserial>=3.5.0.20260408",
 ]
 
 [project.urls]
@@ -47,7 +50,7 @@ Issues = "https://gitlab.com/micropython-iot-projects/libraries/micropython-netw
 [tool.ruff]
 exclude = ["lib", "env"]
 indent-width = 4
-line-length = 80
+line-length = 79
 
 [tool.ruff.format]
 indent-style = "space"
@@ -56,11 +59,31 @@ quote-style = "double"
 
 [tool.ruff.lint]
 select = [
-    "D1",  # pydocstyle
-    "E",   # pycodestyle
-    "ERA", # commented out code
-    "W",   # pycodestyle
-    "C90", # McCabe complexity
+    "ANN001", # flake8-annotations (missing-type-function-argument)
+    "ANN002", # flake8-annotations (missing-type-args)
+    "ANN003", # flake8-annotations (missing-type-kwargs)
+    "D1",     # pydocstyle (undocumented-* ruleset)
+    "D403",   # pydocstyle (first-word-uncapitalized)
+    "D417",   # pydocstyle (undocumented-param)
+    "D419",   # pydocstyle (empty-docstring)
+    "E",      # pycodestyle (error ruleset)
+    "ERA",    # commented out code
+    "F401",   # pyflakes (unused-import)
+    "I002",   # isort (missing-required-import)
+    "LOG002", # flake8-logging (invalid-get-logger-argument)
+    "LOG007", # flake8-logging (exception-without-exc-info)
+    "LOG015", # flake8-logging (root-logger-call)
+    "NPY001", # NumPy-specific rules (numpy-deprecated-type-alias)
+    "NPY003", # NumPy-specific rules (numpy-deprecated-function)
+    "T100",   # flake8-debugger (debugger)
+    "T201",   # flake8-print (print)
+    "TRY002", # tryceratops (raise-vanilla-class)
+    "TRY003", # tryceratops (raise-vanilla-args)
+    "TRY004", # tryceratops (type-check-without-type-error)
+    "TRY300", # tryceratops (try-consider-else)
+    "TRY401", # tryceratops (verbose-log-message)
+    "W",      # pycodestyle (warning ruleset)
+    "C90",    # McCabe complexity (complex-structure)
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -93,3 +116,21 @@ packages = ["networkutils/"]
 
 [tool.hatch.version]
 source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+version_scheme = "guess-next-dev"
+
+[tool.mypy]
+strict = true
+pretty = true
+follow_imports = "silent"
+mypy_path = ["typings"]
+
+[[tool.mypy.overrides]]
+module = ["mpremote", "mpremote.*"]
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = ["tests.integration.*"]
+disable_error_code = ["import-untyped"]

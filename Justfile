@@ -1,0 +1,118 @@
+set dotenv-load := true
+
+# ENVIRONMENT VARIABLES (`.env` or default)
+# ====================================================
+
+# PORT := env("PORT", "8080")
+
+
+[default]
+@_:
+    just --list
+
+# ENVIRONMENT
+# ====================================================
+
+[doc("Install MicroPython stubs into `typings/` folder")]
+[group("ENV")]
+@stubs:
+    uv export --only-group dev --no-hashes --no-emit-project | \
+      grep "micropython" | \
+      uv pip install --target typings --requirements -
+
+[doc("Update project environment")]
+[group("ENV")]
+sync: stubs
+    uv sync
+
+[doc("Upgrade dependencies")]
+[group("ENV")]
+@upgrade:
+    uv lock --upgrade
+
+[doc("Clean project environment")]
+[group("ENV")]
+clean:
+    rm -rf \
+      .venv .pytest_cache \
+      .mpy_cache .ruff_cache \
+      .coverage htmlcov
+    find . \
+      -type d \
+      -name "__pycache__" \
+      -exec rm -r {} +
+
+[doc("Clean & update project environment")]
+[group("ENV")]
+resync: clean sync
+
+# DEV & QA
+# ====================================================
+
+[doc("Format microcontroller [`mpremote`]")]
+[group("DEV")]
+@mpremote-format:
+    mpremote exec --no-follow "import os, machine, rp2; os.umount('/'); bdev = rp2.Flash(); os.VfsLfs2.mkfs(bdev, progsize=256); vfs = os.VfsLfs2(bdev, progsize=256); os.mount(vfs, '/'); machine.reset()"
+
+[doc("Install `networkutils` onto a connected microcontroller [`mpremote`]")]
+[group("DEV")]
+@mpremote-install:
+    mpremote mip install "github:andyrids/micropython-networkutils/"
+
+[doc("Run AP example on a connected microcontroller [`mpremote`]")]
+[group("DEV")]
+@mpremote-runap:
+    mpremote run "examples/ap_fsm.py"
+
+[doc("Run STA example on a connected microcontroller [`mpremote`]")]
+[group("DEV")]
+@mpremote-runsta:
+    mpremote run "examples/sta_mode.py"
+
+[doc("Git prune all unreachable objects immediately")]
+[group("QA")]
+@git-prune:
+    git gc --prune=now
+
+[doc("Check static typing")]
+[group("QA")]
+@static-typing:
+    uv run mypy src tests
+
+[doc("Install `prek` Git shims")]
+[group("QA")]
+@prek-install:
+    uv run -m prek install
+
+[doc("Prepare `prek` hook environments")]
+[group("QA")]
+@prek-install-prepare:
+    uv run -m prek install --prepare-hooks
+
+[doc("List `prek` Git hooks")]
+[group("QA")]
+@prek-list:
+    uv run -m prek list
+
+[doc("Update `prek` pinned hook repository revisions")]
+[group("QA")]
+@prek-update:
+    uv run -m prek auto-update
+
+_coverage *args:
+    uv run -m coverage {{ args }}
+
+[doc("Generate test coverage")]
+[group("QA")]
+@coverage:
+    just _coverage erase
+    just _coverage run -m pytest
+    just _coverage combine
+    just _coverage report
+    just _coverage html
+
+[doc("Format & lint")]
+[group("QA")]
+@format-lint:
+    - uv run -m ruff format .
+    - uv run -m ruff check --fix
